@@ -1,3 +1,7 @@
 /target
 *.pending-snap
 *.snap.new
+
+# Local agent and tool state
+/.claude/
+/.fresh-dev/
