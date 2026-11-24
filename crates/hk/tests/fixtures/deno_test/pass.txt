@@ -1,0 +1,6 @@
+Check a_test.ts
+running 1 test from ./a_test.ts
+ok ... ok (3ms)
+
+ok | 1 passed | 0 failed (21ms)
+

@@ -1,0 +1,27 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: cargo_test
+raw chars: 909
+compact chars: 250
+--- final output
+✗ 2 failed, 2 passed
+FAIL tests::fails_one
+  panicked at src/lib.rs:7:30:
+  assertion `left == right` failed: math is broken
+  left: 4
+  right: 5
+FAIL tests::panics
+  panicked at src/lib.rs:8:62:
+  index out of bounds: the len is 0 but the index is 3
+--- cargo_test filter output
+✗ 2 failed, 2 passed
+FAIL tests::fails_one
+  panicked at src/lib.rs:7:30:
+  assertion `left == right` failed: math is broken
+  left: 4
+  right: 5
+FAIL tests::panics
+  panicked at src/lib.rs:8:62:
+  index out of bounds: the len is 0 but the index is 3

@@ -1,0 +1,30 @@
+running 2 tests from ./a_test.ts
+ok ... ok (3ms)
+bad ... FAILED (103ms)
+
+ ERRORS 
+
+bad => ./a_test.ts:3:6
+error: AssertionError: Values are not equal.
+
+
+    [Diff] Actual / Expected
+
+
+    {
+-     a: 1,
++     a: 2,
+    }
+
+  throw new AssertionError(message);
+        ^
+    at assertEquals (https://jsr.io/@std/assert/1.0.19/equals.ts:67:9)
+    at file:///work/dn/a_test.ts:3:26
+
+ FAILURES 
+
+bad => ./a_test.ts:3:6
+
+FAILED | 1 passed | 1 failed (138ms)
+
+error: Test failed

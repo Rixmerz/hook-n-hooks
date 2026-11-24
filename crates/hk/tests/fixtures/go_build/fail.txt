@@ -1,0 +1,3 @@
+# ex
+./b.go:2:23: cannot use "s" (untyped string constant) as int value in return statement
+./b.go:3:12: undefined: undefined

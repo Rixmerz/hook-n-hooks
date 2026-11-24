@@ -1,0 +1,33 @@
+   Compiling rs v0.1.0 (/work/rs)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.52s
+     Running unittests src/lib.rs (target/debug/deps/rs-1137717771d26791)
+
+running 4 tests
+test tests::fails_one ... FAILED
+test tests::adds_neg ... ok
+test tests::panics ... FAILED
+test tests::adds ... ok
+
+failures:
+
+---- tests::fails_one stdout ----
+
+thread 'tests::fails_one' (12345) panicked at src/lib.rs:7:30:
+assertion `left == right` failed: math is broken
+  left: 4
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::panics stdout ----
+
+thread 'tests::panics' (12345) panicked at src/lib.rs:8:62:
+index out of bounds: the len is 0 but the index is 3
+
+
+failures:
+    tests::fails_one
+    tests::panics
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

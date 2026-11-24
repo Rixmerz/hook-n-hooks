@@ -1,0 +1,17 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: build
+raw chars: 262
+compact chars: 230
+--- final output
+✗ build failed: 3 error(s), 0 warning(s)
+a.ts:1: error TS2322: Type 'string' is not assignable to type 'number'.
+a.ts:2: error TS2304: Cannot find name 'foo'.
+a.ts:3: error TS2322: Type 'number' is not assignable to type 'string'.
+--- build filter output
+✗ build failed: 3 error(s), 0 warning(s)
+a.ts:1: error TS2322: Type 'string' is not assignable to type 'number'.
+a.ts:2: error TS2304: Cannot find name 'foo'.
+a.ts:3: error TS2322: Type 'number' is not assignable to type 'string'.

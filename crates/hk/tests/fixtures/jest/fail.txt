@@ -1,0 +1,27 @@
+npm notice run jt@1.0.0 npx
+npm notice run 'jest' --ci
+FAIL ./a.test.js
+  ● bad
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "a": 2,
+    +   "a": 1,
+      }
+
+      1 | test("ok", () => expect(1).toBe(1));
+    > 2 | test("bad", () => { expect({a: 1}).toEqual({a: 2}); });
+        |                                    ^
+      3 |
+
+      at Object.toEqual (a.test.js:2:36)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        0.576 s
+Ran all test suites.

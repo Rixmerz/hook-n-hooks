@@ -1,0 +1,29 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: deno_bun_test
+raw chars: 471
+compact chars: 264
+--- final output
+✗ 1 failed, 1 passed
+FAIL bad => ./a_test.ts:3:6
+  error: AssertionError: Values are not equal.
+  [Diff] Actual / Expected
+  {
+  -     a: 1,
+  +     a: 2,
+  }
+  throw new AssertionError(message);
+  at assertEquals (https://jsr.io/@std/assert/1.0.19/equals.ts:67:9)
+--- deno_bun_test filter output
+✗ 1 failed, 1 passed
+FAIL bad => ./a_test.ts:3:6
+  error: AssertionError: Values are not equal.
+  [Diff] Actual / Expected
+  {
+  -     a: 1,
+  +     a: 2,
+  }
+  throw new AssertionError(message);
+  at assertEquals (https://jsr.io/@std/assert/1.0.19/equals.ts:67:9)

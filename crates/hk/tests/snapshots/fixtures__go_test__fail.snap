@@ -1,0 +1,17 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: generic
+raw chars: 86
+compact chars: 85
+--- final output
+--- FAIL: TestBad (0.00s)
+    a_test.go:4: expected 5, got 4
+FAIL
+FAIL	ex	0.014s
+FAIL
+--- go_test filter output
+✗ 1 test(s) failed in 1 package(s), 0 package(s) ok
+FAIL TestBad
+  a_test.go:4: expected 5, got 4

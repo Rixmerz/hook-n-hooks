@@ -1,0 +1,7 @@
+[ERR_PNPM_FETCH_404] GET https://registry.npmjs.org/this-package-does-not-exist-hk-xyz: Not Found - 404
+
+This error happened while installing a direct dependency of /work/pn2
+
+this-package-does-not-exist-hk-xyz is not in the npm registry, or you have no permission to fetch it.
+
+An authorization header was used: Bearer [hidden]

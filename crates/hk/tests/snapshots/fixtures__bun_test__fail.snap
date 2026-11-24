@@ -1,0 +1,25 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: deno_bun_test
+raw chars: 473
+compact chars: 189
+--- final output
+✗ 1 failed, 1 passed
+FAIL bad [0.90ms]
+  error: expect(received).toEqual(expected)
+  -   "a": 2,
+  +   "a": 1,
+  - Expected  - 1
+  + Received  + 1
+  at <anonymous> (/work/jt/b.test.ts:3:36)
+--- deno_bun_test filter output
+✗ 1 failed, 1 passed
+FAIL bad [0.90ms]
+  error: expect(received).toEqual(expected)
+  -   "a": 2,
+  +   "a": 1,
+  - Expected  - 1
+  + Received  + 1
+  at <anonymous> (/work/jt/b.test.ts:3:36)

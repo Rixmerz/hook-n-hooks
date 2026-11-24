@@ -1,0 +1,5 @@
+--- FAIL: TestBad (0.00s)
+    a_test.go:4: expected 5, got 4
+FAIL
+FAIL	ex	0.014s
+FAIL
