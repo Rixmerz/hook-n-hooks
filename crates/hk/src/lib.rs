@@ -7,6 +7,7 @@ pub mod filters;
 pub mod format;
 pub mod hook;
 pub mod paths;
+pub mod permissions;
 pub mod repomap;
 pub mod run;
 pub mod shell;

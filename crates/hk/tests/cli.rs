@@ -89,7 +89,7 @@ fn hook(event: &str, input: &str) -> (i32, String) {
 fn pre_tool_use_hook_rewrites_and_fails_open() {
     let (code, out) = hook(
         "pre-tool-use",
-        r#"{"session_id":"s","tool_name":"Bash","tool_input":{"command":"cargo test"}}"#,
+        r#"{"session_id":"s","permission_mode":"bypassPermissions","tool_name":"Bash","tool_input":{"command":"cargo test"}}"#,
     );
     assert_eq!(code, 0);
     let v: serde_json::Value = serde_json::from_str(&out).unwrap();

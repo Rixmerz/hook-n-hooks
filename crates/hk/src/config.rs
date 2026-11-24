@@ -46,6 +46,11 @@ pub struct Rewrite {
     /// Extra program names that should go through the generic filter
     /// (head/tail truncation), e.g. `["make", "just"]`.
     pub generic_commands: Vec<String>,
+    /// What to do with a filterable command that none of the user's allow
+    /// rules covers: `"skip"` (default: leave it alone, so the normal
+    /// approval prompt shows the original command) or `"rewrite"`.
+    /// In `auto` and `bypassPermissions` modes commands are always rewritten.
+    pub unapproved: String,
 }
 
 impl Default for Config {
@@ -83,6 +88,7 @@ impl Default for Rewrite {
         Rewrite {
             enabled: true,
             generic_commands: Vec::new(),
+            unapproved: "skip".into(),
         }
     }
 }

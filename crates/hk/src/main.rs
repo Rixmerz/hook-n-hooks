@@ -119,7 +119,13 @@ fn hook_cmd(event: Option<&str>) -> i32 {
             let exe = std::env::current_exe()
                 .ok()
                 .and_then(|p| p.to_str().map(String::from));
-            if let Some(out) = exe.and_then(|e| hook::pre_tool_use(&input, &e)) {
+            let cwd = input
+                .get("cwd")
+                .and_then(|c| c.as_str())
+                .map(std::path::PathBuf::from)
+                .unwrap_or_default();
+            let rules = hk::permissions::load(&hk::permissions::settings_files(&cwd));
+            if let Some(out) = exe.and_then(|e| hook::pre_tool_use(&input, &e, &rules)) {
                 let _ = writeln!(stdout, "{out}");
             }
         }
