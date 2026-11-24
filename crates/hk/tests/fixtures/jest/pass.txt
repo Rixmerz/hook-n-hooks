@@ -1,0 +1,7 @@
+npm notice run jt@1.0.0 npx
+npm notice run 'jest' --ci
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        0.671 s, estimated 1 s
+Ran all test suites.

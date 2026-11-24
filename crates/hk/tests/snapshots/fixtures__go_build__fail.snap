@@ -1,0 +1,15 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: generic
+raw chars: 126
+compact chars: 125
+--- final output
+# ex
+./b.go:2:23: cannot use "s" (untyped string constant) as int value in return statement
+./b.go:3:12: undefined: undefined
+--- build filter output
+✗ build failed: 2 error(s), 0 warning(s)
+./b.go:2: cannot use "s" (untyped string constant) as int value in return statement
+./b.go:3: undefined: undefined

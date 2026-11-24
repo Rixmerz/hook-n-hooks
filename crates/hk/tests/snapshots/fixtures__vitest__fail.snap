@@ -1,0 +1,29 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: js_test
+raw chars: 726
+compact chars: 183
+--- final output
+✗ 1 failed, 1 passed
+FAIL a.test.js > bad
+  AssertionError: expected { a: 1 } to deeply equal { a: 2 }
+  - Expected
+  + Received
+  {
+  -   "a": 2,
+  +   "a": 1,
+  }
+  ❯ a.test.js:3:36
+--- js_test filter output
+✗ 1 failed, 1 passed
+FAIL a.test.js > bad
+  AssertionError: expected { a: 1 } to deeply equal { a: 2 }
+  - Expected
+  + Received
+  {
+  -   "a": 2,
+  +   "a": 1,
+  }
+  ❯ a.test.js:3:36

@@ -1,0 +1,21 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: install
+raw chars: 609
+compact chars: 228
+--- final output
+added 47 packages, and audited 48 packages in 8s
+5 vulnerabilities (3 moderate, 2 critical)
+Some issues need review, and may require choosing
+a different dependency.
+Run `npm audit` for details.
+(3 deprecation warning(s) hidden)
+--- install filter output
+added 47 packages, and audited 48 packages in 8s
+5 vulnerabilities (3 moderate, 2 critical)
+Some issues need review, and may require choosing
+a different dependency.
+Run `npm audit` for details.
+(3 deprecation warning(s) hidden)

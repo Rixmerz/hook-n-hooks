@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: generic
+raw chars: 15
+compact chars: 14
+--- final output
+ok  	ex	0.010s
+--- go_test filter output
+✓ 1 package(s) ok

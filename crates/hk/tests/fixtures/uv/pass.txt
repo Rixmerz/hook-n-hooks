@@ -1,0 +1,12 @@
+Using Python 3.12.14 environment at: v
+Resolved 5 packages in 5.23s
+Prepared 1 package in 205ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 5 packages in 49ms
+ + certifi==2026.11.20
+ + charset-normalizer==3.5.3
+ + idna==3.20
+ + requests==2.34.2
+ + urllib3==2.8.0

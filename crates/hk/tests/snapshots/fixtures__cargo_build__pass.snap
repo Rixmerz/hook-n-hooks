@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: build
+raw chars: 106
+compact chars: 10
+--- final output
+✓ build ok
+--- build filter output
+✓ build ok

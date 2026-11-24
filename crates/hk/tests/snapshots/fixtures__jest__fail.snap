@@ -1,0 +1,31 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: js_test
+raw chars: 583
+compact chars: 263
+--- final output
+✗ 1 failed, 1 passed
+FAIL bad
+  expect(received).toEqual(expected) // deep equality
+  - Expected  - 1
+  + Received  + 1
+  Object {
+  -   "a": 2,
+  +   "a": 1,
+  }
+  > 2 | test("bad", () => { expect({a: 1}).toEqual({a: 2}); });
+  at Object.toEqual (a.test.js:2:36)
+--- js_test filter output
+✗ 1 failed, 1 passed
+FAIL bad
+  expect(received).toEqual(expected) // deep equality
+  - Expected  - 1
+  + Received  + 1
+  Object {
+  -   "a": 2,
+  +   "a": 1,
+  }
+  > 2 | test("bad", () => { expect({a: 1}).toEqual({a: 2}); });
+  at Object.toEqual (a.test.js:2:36)

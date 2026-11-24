@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: cargo_test
+raw chars: 663
+compact chars: 10
+--- final output
+✓ 2 passed
+--- cargo_test filter output
+✓ 2 passed

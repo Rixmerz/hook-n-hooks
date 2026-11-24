@@ -1,0 +1,11 @@
+npm notice run js@1.0.0 npx
+npm notice run 'vitest' run
+
+ RUN  v5.1.1 /work/js
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  23:14:01
+   Duration  804ms (import 42%, transform 31%, worker 17%, tests 10%)
+

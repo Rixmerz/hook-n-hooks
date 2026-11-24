@@ -1,0 +1,13 @@
+{
+  "name": "hook-n-hooks",
+  "version": "0.1.0",
+  "description": "Token-saving hooks for Claude Code: compact test, build and install output, format touched files, and a repo map at session start.",
+  "author": {
+    "name": "hook-n-hooks contributors",
+    "url": "https://github.com/Rixmerz/hook-n-hooks"
+  },
+  "homepage": "https://github.com/Rixmerz/hook-n-hooks",
+  "repository": "https://github.com/Rixmerz/hook-n-hooks",
+  "license": "MIT OR Apache-2.0",
+  "keywords": ["tokens", "hooks", "tests", "output", "compaction"]
+}

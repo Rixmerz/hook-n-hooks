@@ -1,0 +1,19 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: install
+raw chars: 1519
+compact chars: 136
+--- final output
+dependencies:
++ left-pad 1.3.0 deprecated
++ request 2.88.2 deprecated
+Done in 3.5s using pnpm v11.24.0
+(3 deprecation warning(s) hidden)
+--- install filter output
+dependencies:
++ left-pad 1.3.0 deprecated
++ request 2.88.2 deprecated
+Done in 3.5s using pnpm v11.24.0
+(3 deprecation warning(s) hidden)

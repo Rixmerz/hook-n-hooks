@@ -1,0 +1,31 @@
+   Compiling rs v0.1.0 (/work/rs)
+error[E0308]: mismatched types
+ --> src/lib.rs:8:42
+  |
+8 | pub fn broken() -> i32 { let x: String = 5; undefined_fn(); x }
+  |                                 ------   ^ expected `String`, found integer
+  |                                 |
+  |                                 expected due to this
+  |
+help: try using a conversion method
+  |
+8 | pub fn broken() -> i32 { let x: String = 5.to_string(); undefined_fn(); x }
+  |                                           ++++++++++++
+
+error[E0425]: cannot find function `undefined_fn` in this scope
+ --> src/lib.rs:8:45
+  |
+8 | pub fn broken() -> i32 { let x: String = 5; undefined_fn(); x }
+  |                                             ^^^^^^^^^^^^ not found in this scope
+
+error[E0308]: mismatched types
+ --> src/lib.rs:8:61
+  |
+8 | pub fn broken() -> i32 { let x: String = 5; undefined_fn(); x }
+  |                    ---                                      ^ expected `i32`, found `String`
+  |                    |
+  |                    expected `i32` because of return type
+
+Some errors have detailed explanations: E0308, E0425.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `rs` (lib) due to 3 previous errors

@@ -1,0 +1,25 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: install
+raw chars: 555
+compact chars: 195
+--- final output
+Using Python 3.12.14 environment at: v
+Resolved 5 packages in 5.23s
+Installed 5 packages in 49ms
++ certifi==2026.11.20
++ charset-normalizer==3.5.3
++ idna==3.20
++ requests==2.34.2
++ urllib3==2.8.0
+--- install filter output
+Using Python 3.12.14 environment at: v
+Resolved 5 packages in 5.23s
+Installed 5 packages in 49ms
++ certifi==2026.11.20
++ charset-normalizer==3.5.3
++ idna==3.20
++ requests==2.34.2
++ urllib3==2.8.0
