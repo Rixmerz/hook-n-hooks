@@ -100,7 +100,8 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
         Verdict::Deny | Verdict::Ask => return None,
         Verdict::Allow(rule) => Some(rule),
         Verdict::Unknown => {
-            if !matches!(mode, "bypassPermissions" | "auto") && cfg.rewrite.unapproved != "rewrite" {
+            if !matches!(mode, "bypassPermissions" | "auto") && cfg.rewrite.unapproved != "rewrite"
+            {
                 return None;
             }
             None

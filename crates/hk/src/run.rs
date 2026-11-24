@@ -146,11 +146,21 @@ fn spawn(argv: &[String], writer: &std::io::PipeWriter) -> std::io::Result<std::
     match build(&argv[0], &argv[1..])?.spawn() {
         Ok(c) => Ok(c),
         // Windows: `npm`, `pnpm`, `npx` are `.cmd` shims that CreateProcess
-        // cannot start directly; retry through `cmd /C`.
+        // cannot start directly; run those through `cmd /C`.
         Err(e) if cfg!(windows) && e.kind() == std::io::ErrorKind::NotFound => {
-            let mut args = vec!["/C".to_string()];
-            args.extend_from_slice(argv);
-            build("cmd", &args)?.spawn()
+            let shim = crate::format::which(&argv[0], Path::new(".")).filter(|p| {
+                p.extension()
+                    .and_then(|x| x.to_str())
+                    .is_some_and(|x| x.eq_ignore_ascii_case("cmd") || x.eq_ignore_ascii_case("bat"))
+            });
+            match shim {
+                Some(p) => {
+                    let mut args = vec!["/C".to_string(), p.to_string_lossy().into_owned()];
+                    args.extend_from_slice(&argv[1..]);
+                    build("cmd", &args)?.spawn()
+                }
+                None => Err(e),
+            }
         }
         Err(e) => Err(e),
     }
