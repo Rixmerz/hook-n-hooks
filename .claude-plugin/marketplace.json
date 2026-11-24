@@ -1,0 +1,15 @@
+{
+  "name": "hook-n-hooks",
+  "description": "Token-saving hooks for Claude Code.",
+  "owner": {
+    "name": "hook-n-hooks contributors",
+    "url": "https://github.com/Rixmerz/hook-n-hooks"
+  },
+  "plugins": [
+    {
+      "name": "hook-n-hooks",
+      "source": "./",
+      "description": "Token-saving hooks for Claude Code: compact test, build and install output, format touched files, and a repo map at session start."
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+#!/bin/sh
+# hk launcher: finds or downloads the prebuilt `hk` binary, then execs it.
+#
+# Resolution order:
+#   1. $HK_BIN, if set and executable
+#   2. the cached binary for this version under $CLAUDE_PLUGIN_DATA
+#   3. an `hk` on PATH reporting the same version (e.g. from `cargo install`)
+#   4. download from GitHub Releases, verify SHA256, cache, exec
+#
+# Runs under any POSIX sh, including Git Bash on Windows (which Claude Code
+# uses for hook commands there). The launcher only runs this logic until the
+# binary is cached; after that it is a single `exec`.
+#
+# Hooks fail open: if no binary can be obtained, `hk hook ...` exits 0 with no
+# output so Claude Code keeps working, and the reason goes to stderr.
+
+VERSION="0.1.0"
+REPO="Rixmerz/hook-n-hooks"
+
+fail() {
+  echo "hk launcher: $*" >&2
+  echo "hk launcher: install manually with: cargo install --git https://github.com/$REPO hk" >&2
+  if [ "$HK_LAUNCH_SUBCOMMAND" = "hook" ]; then
+    exit 0
+  fi
+  exit 1
+}
+HK_LAUNCH_SUBCOMMAND="$1"
+
+if [ -n "$HK_BIN" ] && [ -x "$HK_BIN" ]; then
+  exec "$HK_BIN" "$@"
+fi
+
+EXT=""
+case "$(uname -s 2>/dev/null)" in
+  Linux*) OS="unknown-linux-musl" ;;
+  Darwin*) OS="apple-darwin" ;;
+  MINGW* | MSYS* | CYGWIN* | Windows_NT) OS="pc-windows-msvc"; EXT=".exe" ;;
+  *) fail "unsupported OS: $(uname -s)" ;;
+esac
+case "$(uname -m 2>/dev/null)" in
+  x86_64 | amd64) ARCH="x86_64" ;;
+  arm64 | aarch64) ARCH="aarch64" ;;
+  *) fail "unsupported architecture: $(uname -m)" ;;
+esac
+TARGET="$ARCH-$OS"
+
+DATA="${CLAUDE_PLUGIN_DATA:-${HOME:-.}/.cache/hook-n-hooks}"
+DIR="$DATA/bin/$VERSION"
+BIN="$DIR/hk$EXT"
+
+if [ -x "$BIN" ]; then
+  exec "$BIN" "$@"
+fi
+
+if command -v hk >/dev/null 2>&1; then
+  case "$(hk version 2>/dev/null)" in
+    "hk $VERSION") exec hk "$@" ;;
+  esac
+fi
+
+fetch() { # url dest
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --retry 2 -o "$2" "$1"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$2" "$1"
+  elif command -v powershell.exe >/dev/null 2>&1; then
+    powershell.exe -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri '$1' -OutFile '$2'"
+  else
+    return 1
+  fi
+}
+
+sha256() { # file
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | cut -d' ' -f1
+  elif command -v certutil >/dev/null 2>&1; then
+    certutil -hashfile "$1" SHA256 | sed -n '2p' | tr -d ' \r'
+  else
+    return 1
+  fi
+}
+
+ASSET="hk-$TARGET$EXT"
+URL="https://github.com/$REPO/releases/download/v$VERSION/$ASSET"
+mkdir -p "$DIR" || fail "cannot create $DIR"
+TMP="$DIR/.download.$$"
+trap 'rm -f "$TMP" "$TMP.sha256"' EXIT INT TERM
+
+echo "hk launcher: downloading $ASSET v$VERSION (first run only)" >&2
+fetch "$URL" "$TMP" || fail "download failed: $URL"
+fetch "$URL.sha256" "$TMP.sha256" || fail "checksum download failed: $URL.sha256"
+EXPECTED="$(cut -d' ' -f1 < "$TMP.sha256" | tr -d ' \r\n' | tr 'A-F' 'a-f')"
+ACTUAL="$(sha256 "$TMP" | tr 'A-F' 'a-f')" || fail "no sha256 tool (sha256sum, shasum or certutil) found"
+[ -n "$EXPECTED" ] && [ "$EXPECTED" = "$ACTUAL" ] || fail "SHA256 mismatch for $ASSET (expected $EXPECTED, got $ACTUAL)"
+chmod +x "$TMP"
+mv -f "$TMP" "$BIN" || fail "cannot install to $BIN"
+exec "$BIN" "$@"
