@@ -1,0 +1,42 @@
+
+Randomized with seed 41297
+..F...*..F
+
+Pending: (Failures listed here are expected and do not affect your suite's status)
+
+  1) Cart#checkout charges tax for EU orders
+     # Not yet implemented
+     # ./spec/cart_spec.rb:40
+
+
+Failures:
+
+  1) Calc#add adds two numbers
+     Failure/Error: expect(Calc.new.add(2, 2)).to eq(5)
+
+       expected: 5
+            got: 4
+
+       (compared using ==)
+     # ./spec/calc_spec.rb:7:in `block (3 levels) in <top (required)>'
+
+  2) Cart#total applies the discount
+     Failure/Error: expect(cart.total).to eq(90)
+
+       expected: 90
+            got: 100
+
+       (compared using ==)
+     # ./spec/cart_spec.rb:22:in `block (3 levels) in <top (required)>'
+     # /usr/local/bundle/gems/rspec-core-3.13.2/lib/rspec/core/example.rb:263:in `instance_exec'
+
+Finished in 0.04219 seconds (files took 0.21503 seconds to load)
+10 examples, 2 failures, 1 pending
+
+Failed examples:
+
+rspec ./spec/calc_spec.rb:6 # Calc#add adds two numbers
+rspec ./spec/cart_spec.rb:20 # Cart#total applies the discount
+
+Randomized with seed 41297
+

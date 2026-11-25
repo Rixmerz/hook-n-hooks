@@ -1,0 +1,17 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: jvm
+raw chars: 4236
+compact chars: 311
+--- final output
+✗ mvn: BUILD FAILURE | Tests run: 3, Failures: 1, Errors: 1, Skipped: 0
+FAIL CalcTest.addsWrong:15 expected: <5> but was: <4>
+FAIL CalcTest.divides:20 » Arithmetic / by zero
+Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.3.1:test (default-test) on project demo: There are test failures.
+--- jvm filter output
+✗ mvn: BUILD FAILURE | Tests run: 3, Failures: 1, Errors: 1, Skipped: 0
+FAIL CalcTest.addsWrong:15 expected: <5> but was: <4>
+FAIL CalcTest.divides:20 » Arithmetic / by zero
+Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.3.1:test (default-test) on project demo: There are test failures.

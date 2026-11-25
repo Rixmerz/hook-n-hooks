@@ -1,0 +1,40 @@
+
+Running 6 tests using 3 workers
+
+  ✓  1 [chromium] › tests/home.spec.ts:3:5 › shows the hero (1.1s)
+  ✓  2 [chromium] › tests/home.spec.ts:9:5 › navigates to pricing (1.4s)
+  ✘  3 [chromium] › tests/login.spec.ts:5:5 › logs in with valid credentials (5.2s)
+  ✓  4 [chromium] › tests/login.spec.ts:18:5 › rejects a bad password (0.9s)
+  ✓  5 [chromium] › tests/cart.spec.ts:4:5 › adds an item (1.3s)
+  -  6 [chromium] › tests/cart.spec.ts:20:6 › applies a coupon
+
+
+  1) [chromium] › tests/login.spec.ts:5:5 › logs in with valid credentials ─────────────────────────
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  getByRole('heading', { name: 'Dashboard' })
+    Expected: visible
+    Received: <element(s) not found>
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Dashboard' })
+
+
+       9 |   await page.getByLabel('Password').fill('secret');
+      10 |   await page.getByRole('button', { name: 'Sign in' }).click();
+    > 11 |   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+         |                                                                  ^
+      12 | });
+      13 |
+
+        at /home/dev/project/tests/login.spec.ts:11:66
+
+    Error Context: test-results/login-logs-in-with-valid-credentials-chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/login.spec.ts:5:5 › logs in with valid credentials ──────────────────────────
+  1 skipped
+  4 passed (7.9s)

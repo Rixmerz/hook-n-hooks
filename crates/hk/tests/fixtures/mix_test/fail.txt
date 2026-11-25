@@ -1,0 +1,31 @@
+Compiling 2 files (.ex)
+Generated shop app
+Running ExUnit with seed: 512340, max_cases: 16
+
+..
+
+  1) test total/1 applies the discount (Shop.CartTest)
+     test/shop/cart_test.exs:18
+     Assertion with == failed
+     code:  assert Cart.total(cart) == 90
+     left:  100
+     right: 90
+     stacktrace:
+       test/shop/cart_test.exs:20: (test)
+
+....
+
+  2) test round/2 rounds half up (Shop.PricingTest)
+     test/shop/pricing_test.exs:7
+     ** (ArithmeticError) bad argument in arithmetic expression
+     code: assert Pricing.round(10, 0) == 10
+     stacktrace:
+       :erlang.div(10, 0)
+       (shop 0.1.0) lib/shop/pricing.ex:12: Shop.Pricing.round/2
+       test/shop/pricing_test.exs:8: (test)
+
+..
+Finished in 0.08 seconds (0.05s async, 0.03s sync)
+10 tests, 2 failures
+
+Randomized with seed 512340

@@ -1,0 +1,23 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: playwright
+raw chars: 1511
+compact chars: 289
+--- final output
+✗ 1 failed, 1 skipped, 4 passed (7.9s)
+FAIL [chromium] › tests/login.spec.ts:5:5 › logs in with valid credentials
+  Error: expect(locator).toBeVisible() failed
+  Locator:  getByRole('heading', { name: 'Dashboard' })
+  Expected: visible
+  Received: <element(s) not found>
+  Timeout:  5000ms
+--- playwright filter output
+✗ 1 failed, 1 skipped, 4 passed (7.9s)
+FAIL [chromium] › tests/login.spec.ts:5:5 › logs in with valid credentials
+  Error: expect(locator).toBeVisible() failed
+  Locator:  getByRole('heading', { name: 'Dashboard' })
+  Expected: visible
+  Received: <element(s) not found>
+  Timeout:  5000ms

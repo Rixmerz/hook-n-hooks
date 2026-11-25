@@ -1,0 +1,15 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: jvm
+raw chars: 2098
+compact chars: 223
+--- final output
+✗ mvn: BUILD FAILURE
+/home/dev/project/src/main/java/demo/Calc.java:5: ';' expected
+Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project demo: Compilation failure
+--- jvm filter output
+✗ mvn: BUILD FAILURE
+/home/dev/project/src/main/java/demo/Calc.java:5: ';' expected
+Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.13.0:compile (default-compile) on project demo: Compilation failure

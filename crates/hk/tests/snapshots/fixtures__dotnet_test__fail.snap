@@ -1,0 +1,29 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: dotnet
+raw chars: 1556
+compact chars: 592
+--- final output
+✗ dotnet test: 2 failed, 14 passed, 1 skipped
+FAIL Shop.Tests.CartTests.Total_AppliesDiscount
+  Assert.Equal() Failure: Values differ
+  Expected: 90
+  Actual:   100
+  at Shop.Tests.CartTests.Total_AppliesDiscount() in /home/dev/project/tests/Shop.Tests/CartTests.cs:line 21
+FAIL Shop.Tests.PricingTests.Round_HalfUp
+  System.DivideByZeroException : Attempted to divide by zero.
+  at Shop.Core.Pricing.Round(Decimal value, Int32 step) in /home/dev/project/src/Shop.Core/Pricing.cs:line 12
+  at Shop.Tests.PricingTests.Round_HalfUp() in /home/dev/project/tests/Shop.Tests/PricingTests.cs:line 9
+--- dotnet filter output
+✗ dotnet test: 2 failed, 14 passed, 1 skipped
+FAIL Shop.Tests.CartTests.Total_AppliesDiscount
+  Assert.Equal() Failure: Values differ
+  Expected: 90
+  Actual:   100
+  at Shop.Tests.CartTests.Total_AppliesDiscount() in /home/dev/project/tests/Shop.Tests/CartTests.cs:line 21
+FAIL Shop.Tests.PricingTests.Round_HalfUp
+  System.DivideByZeroException : Attempted to divide by zero.
+  at Shop.Core.Pricing.Round(Decimal value, Int32 step) in /home/dev/project/src/Shop.Core/Pricing.cs:line 12
+  at Shop.Tests.PricingTests.Round_HalfUp() in /home/dev/project/tests/Shop.Tests/PricingTests.cs:line 9

@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+/home/dev/project/src/Shop.Core/Cart.cs(14,32): warning CS8618: Non-nullable property 'Owner' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+/home/dev/project/src/Shop.Core/Cart.cs(27,13): error CS0103: The name 'totl' does not exist in the current context [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+/home/dev/project/src/Shop.Core/Pricing.cs(9,30): error CS1002: ; expected [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+
+Build FAILED.
+
+/home/dev/project/src/Shop.Core/Cart.cs(14,32): warning CS8618: Non-nullable property 'Owner' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable. [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+/home/dev/project/src/Shop.Core/Cart.cs(27,13): error CS0103: The name 'totl' does not exist in the current context [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+/home/dev/project/src/Shop.Core/Pricing.cs(9,30): error CS1002: ; expected [/home/dev/project/src/Shop.Core/Shop.Core.csproj]
+    1 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:02.41

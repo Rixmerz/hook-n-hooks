@@ -1,0 +1,22 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:processResources NO-SOURCE
+
+> Task :app:compileKotlin FAILED
+e: file:///home/dev/project/app/src/main/kotlin/demo/Calc.kt:5:21 Unresolved reference 'c'.
+e: file:///home/dev/project/app/src/main/kotlin/demo/Calc.kt:12:9 Return type mismatch: expected 'Int', actual 'String'.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+1 actionable task: 1 executed
