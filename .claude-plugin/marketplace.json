@@ -9,7 +9,7 @@
     {
       "name": "hook-n-hooks",
       "source": "./",
-      "description": "Token-saving hooks for Claude Code: compact test, build and install output, format touched files, and a repo map at session start."
+      "description": "Token-saving hooks for Claude Code: compact test, build, lint, git, docker, log and install output, format touched files, and a repo map at session start."
     }
   ]
 }
