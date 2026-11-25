@@ -1,0 +1,69 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: listing
+raw chars: 2257
+compact chars: 641
+--- final output
+[hk] 24 directories, 103 files
+[hk] heavy dirs: node_modules (96). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+entries per top-level directory:
+  node_modules: 96
+  src: 6
+  public: 2
+  tests: 2
+first 22 lines outside heavy dirs:
+.
+├── node_modules
+├── public
+│   ├── favicon.svg
+│   └── robots.txt
+├── src
+│   ├── App.tsx
+│   ├── components
+│   ├── hooks
+│   ├── main.tsx
+│   ├── styles.css
+│   └── utils
+├── tests
+│   ├── app.test.tsx
+│   └── utils.test.ts
+├── README.md
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+
+24 directories, 103 files
+--- listing filter output
+[hk] 24 directories, 103 files
+[hk] heavy dirs: node_modules (96). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+entries per top-level directory:
+  node_modules: 96
+  src: 6
+  public: 2
+  tests: 2
+first 22 lines outside heavy dirs:
+.
+├── node_modules
+├── public
+│   ├── favicon.svg
+│   └── robots.txt
+├── src
+│   ├── App.tsx
+│   ├── components
+│   ├── hooks
+│   ├── main.tsx
+│   ├── styles.css
+│   └── utils
+├── tests
+│   ├── app.test.tsx
+│   └── utils.test.ts
+├── README.md
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+
+24 directories, 103 files
