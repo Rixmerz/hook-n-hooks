@@ -15,11 +15,12 @@ crates/hk/                       the binary
   src/run.rs                     `hk run`: execute, tee the log, compact, keep the exit code
   src/hook.rs                    hook handlers (all fail open)
   src/permissions.rs             mirrors the user's Bash rules for the original command
-  src/shell.rs                   conservative parsing of simple Bash commands
+  src/shell.rs                   conservative parsing of simple Bash commands and pipelines
+  src/scripts.rs                 resolve npm/pnpm/yarn/bun scripts, Makefile and justfile targets
   src/format.rs                  per-file format and autofix
   src/repomap.rs, src/stack.rs   SessionStart map, stack detection
   src/stats.rs, src/paths.rs     local stats and data directory
-  tests/fixtures/<tool>/         real captured outputs
+  tests/fixtures/<tool>/         captured outputs (the few hand-written ones are listed in CRAFTED)
   tests/snapshots/               insta snapshots of the compacted outputs
 ```
 
@@ -96,12 +97,21 @@ and neither was the separate marketplace-reference page (the full `owner` and
 ## Bash compaction
 
 1. **PreToolUse** gets `{"tool_name":"Bash","tool_input":{"command":"cargo test"}}`.
-2. `shell::parse` accepts only *simple* commands: an optional `cd DIR &&`
-   prefix, optional `NAME=value` assignments, then plain words. Pipes,
-   redirections, `;`, `&&` chains, `$(...)`, backticks, subshells, background
-   `&` and newlines are all left alone. So are `run_in_background` and watch
-   modes (`--watch`, bare `vitest`, `dev`, `serve`).
-3. The filter registry picks the filter that owns the command.
+2. `shell::parse_pipeline` accepts only *simple* commands: an optional
+   `cd DIR &&` prefix, optional `NAME=value` assignments, then plain words,
+   optionally followed by `2>&1`, optionally piped (with stderr merged) into
+   one `tail -N`, `head -N` or `grep` stage. Other pipes, redirections, `;`,
+   `&&` chains, `$(...)`, backticks, subshells, background `&` and newlines are
+   all left alone. So are `run_in_background` and watch modes (`--watch`, bare
+   `vitest`, `dev`, `serve`).
+3. `hook::choose_filter` picks the filter. Script wrappers (`npm run`, `npm
+   test`, `make`, `just`, `task`) go through `scripts.rs` first: the script
+   body is read from `package.json`, a one-line Makefile rule or a one-line
+   justfile recipe, in the directory the command runs in, and the filter of
+   the command it runs is used. An unresolved wrapper with a terminating name
+   (`test`, `build`, `lint`...) gets the `script` filter, which asks every
+   filter's `sniff` whether it recognises the output. Server and watch scripts
+   are skipped. Otherwise the registry picks the filter that owns the command.
 4. `permissions.rs` checks the original command against the user's rules (see
    below).
 5. The command becomes
@@ -125,6 +135,30 @@ and neither was the separate marketplace-reference page (the full `owner` and
    `128 + signal` for a signal; on Windows, the full 32-bit code, through
    `process::exit`.
 
+### Pipelines
+
+The pipe is never moved into `hk`; it stays in the shell, so the exit status
+the Bash tool reports is the one the original pipeline would have had (the last
+stage's, or the first failing one under `pipefail`).
+
+- `cmd 2>&1` becomes `hk run -- cmd 2>&1`. `hk` merges stderr itself; the
+  `2>&1` now applies to `hk`, which is harmless.
+- `cmd 2>&1 | tail -N` (or `head -N`) becomes
+  `hk run --piped -- cmd 2>&1 | tail -N`. `tail` slices the compact output,
+  which is usually already shorter than N lines. `--piped` prints the log path
+  last as well as first, so either end of the slice keeps it. One difference:
+  with `head`, the original command could be killed early by `SIGPIPE`; under
+  `hk` it runs to completion. Only commands that some filter owns (tests,
+  builds, linters, listings) are rewritten, and they terminate anyway.
+- `cmd 2>&1 | grep ...` becomes `cmd 2>&1 | hk run --filter generic -- grep ...`.
+  Wrapping the left side would make grep search the compact text and change
+  its result, so the grep stage is wrapped instead: grep reads the raw output on
+  its inherited stdin, and `hk` caps what grep prints.
+- Without `2>&1`, a pipe is left alone: `hk run` always merges stderr, so the
+  next stage would start seeing stderr.
+
+For permissions, every stage is checked on its own (see below).
+
 ### Golden rule
 
 Any output Claude sees from a wrapped command starts with the path to the full
@@ -137,6 +171,8 @@ pub trait Filter: Sync {
     fn name(&self) -> &'static str;
     fn detect(&self, cmd: &Cmd) -> bool;
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String>;
+    /// Output signature, for the `script` filter. Defaults to `false`.
+    fn sniff(&self, output: &str) -> bool;
 }
 ```
 
@@ -164,6 +200,11 @@ approval prompts for commands the user already allowed. Worse, it would bypass
 | nothing, in another mode | no rewrite (`rewrite.unapproved = "rewrite"` changes this) |
 
 With a `cd`/env prefix, only a catch-all `Bash` rule is restated as allow.
+For a pipeline, each stage (`cargo test`, `tail -20`) is checked on its own: a
+`deny` or `ask` rule on any stage, or on the whole command line, means no
+rewrite, and allow is restated only when every stage matches an allow rule (or
+a catch-all does). Script wrappers are checked as written (`npm run lint`), never
+as the command the script resolves to.
 Rules from `--allowedTools` and managed settings are not visible to hooks, so
 they are not mirrored. A command allowed only through `--allowedTools` is
 therefore not rewritten in default mode.

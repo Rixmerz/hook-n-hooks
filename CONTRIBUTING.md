@@ -62,9 +62,18 @@ a better one, together with real fixtures.
    in `crates/hk/src/filters/mod.rs`. Add a line to the
    `registry_routes_commands` test.
 
+   If the tool's output has a recognisable signature (a summary line, a
+   diagnostic format), implement `sniff` too. The `script` filter uses it to
+   handle `npm run x`, `make x` and friends when the script cannot be resolved.
+   If the tool has machine-readable or never-ending modes (`--format json`,
+   `--watch`, `-f`), make `detect` return `false` for them.
+
 4. **Add the fixture cases** to `CASES` in `crates/hk/tests/fixtures.rs`. Each
    case is the fixture directory, the case name, the command line that
-   produced it, and its exit code.
+   produced it, and its exit code. Real captures are strongly preferred;
+   remove absolute paths, user names and e-mail addresses from them. If the
+   tool is not available and you have to write a fixture by hand in its exact
+   format, list it in `CRAFTED` in the same file.
 
 5. **Review the snapshots:**
 
