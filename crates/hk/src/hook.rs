@@ -62,20 +62,17 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
     if !cfg.rewrite.enabled {
         return None;
     }
-    let simple = shell::parse(command)?;
+    let pipeline = shell::parse_pipeline(command)?;
+    let simple = &pipeline.left;
     let cmd = Cmd::from_argv(&simple.words)?;
-    if filters::is_watch_mode(&cmd) {
+    let cwd = cwd_of(input);
+    let dir = crate::scripts::prefix_dir(&cwd, simple.prefix);
+    let name = choose_filter(&cmd, dir.as_deref(), &cfg)?;
+    if matches!(&pipeline.pipe, Some(p) if p.kind == shell::PipeKind::Grep)
+        && !cfg.filter_enabled(filters::generic::NAME)
+    {
         return None;
     }
-    let name = match filters::find(&cmd, &|n| cfg.filter_enabled(n)) {
-        Some(f) => f.name(),
-        None if cfg.filter_enabled(filters::generic::NAME)
-            && cfg.rewrite.generic_commands.contains(&cmd.program) =>
-        {
-            filters::generic::NAME
-        }
-        None => return None,
-    };
     // Permission rules are evaluated against the rewritten command, so check
     // the original one against the user's own rules first (see permissions.rs).
     let mut verdict = rules.verdict(simple.rest);
@@ -83,11 +80,26 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
         // A deny/ask rule on the full command (with `cd`/env prefix) also counts.
         verdict = v;
     }
+    let catch_all = |rule: &str| rule == "Bash" || rule == "Bash(*)";
+    if let Some(pipe) = &pipeline.pipe {
+        // Every stage must be allowed on its own, and no stage may be denied.
+        match (rules.verdict(pipe.stage), &verdict) {
+            (v @ (Verdict::Deny | Verdict::Ask), _) => verdict = v,
+            (_, Verdict::Deny | Verdict::Ask) => {}
+            (Verdict::Allow(r2), Verdict::Allow(r1)) => {
+                if !catch_all(r1) {
+                    verdict = Verdict::Allow(format!("{r1} and {r2}"));
+                }
+            }
+            (_, Verdict::Allow(r1)) if catch_all(r1) => {}
+            _ => verdict = Verdict::Unknown,
+        }
+    }
     // With a `cd`/env prefix, only a catch-all `Bash` rule is known to cover
     // the whole command line; narrower rules are not restated.
     if !simple.prefix.is_empty() || !simple.env.is_empty() {
         if let Verdict::Allow(rule) = &verdict {
-            if rule != "Bash" && rule != "Bash(*)" {
+            if !catch_all(rule) {
                 verdict = Verdict::Unknown;
             }
         }
@@ -113,13 +125,28 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
             .and_then(Value::as_str)
             .unwrap_or(""),
     );
-    let rewritten = format!(
-        "{}{}{} run --filter {name} --session {session} -- {}",
-        simple.prefix,
-        simple.env,
-        shell::quote(hk_path),
-        simple.rest
-    );
+    let hk = shell::quote(hk_path);
+    let (pre, env, rest) = (simple.prefix, simple.env, simple.rest);
+    let rewritten = match &pipeline.pipe {
+        // `hk run` merges the child's stderr itself; the `2>&1` stays on hk.
+        None if pipeline.merged => {
+            format!("{pre}{env}{hk} run --filter {name} --session {session} -- {rest} 2>&1")
+        }
+        None => format!("{pre}{env}{hk} run --filter {name} --session {session} -- {rest}"),
+        // The pipe stays in the shell, so its exit status is the one Bash
+        // would report anyway; hk prints the log path first *and* last.
+        Some(p) if p.kind == shell::PipeKind::Slice => format!(
+            "{pre}{env}{hk} run --filter {name} --session {session} --piped -- {rest} 2>&1 | {}",
+            p.stage
+        ),
+        // grep must see the raw output: wrap the grep stage instead, and cap
+        // what grep prints.
+        Some(p) => format!(
+            "{pre}{env}{rest} 2>&1 | {hk} run --filter {} --session {session} -- {}",
+            filters::generic::NAME,
+            p.stage
+        ),
+    };
     // `updatedInput` replaces the whole input object: echo every other field.
     let mut updated = tool_input.clone();
     updated.insert("command".into(), Value::String(rewritten));
@@ -135,6 +162,47 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
             json!(format!("hk: original command allowed by your rule {rule}"));
     }
     Some(json!({ "hookSpecificOutput": out }))
+}
+
+/// Pick the filter for a command, or `None` to leave it alone. `dir` is the
+/// directory the command runs in (for package scripts, Makefiles and
+/// justfiles), when known.
+pub fn choose_filter(cmd: &Cmd, dir: Option<&Path>, cfg: &Config) -> Option<&'static str> {
+    use crate::scripts::{self, Decision};
+    if filters::is_watch_mode(cmd) {
+        return None;
+    }
+    let enabled = |n: &str| cfg.filter_enabled(n);
+    let has_script = |n: &str| dir.is_some_and(|d| scripts::package_script(d, n).is_some());
+    if let Some(w) = scripts::wrapper(cmd, &has_script) {
+        let decision = match dir {
+            Some(d) => scripts::decide(&w, d),
+            None => scripts::decide_unresolved(&w),
+        };
+        let resolved = match decision {
+            Decision::Skip => return None,
+            Decision::Resolved(c) => filters::find(&c, &enabled).map(|f| f.name()),
+            Decision::Sniff => None,
+        };
+        if resolved.is_some() {
+            return resolved;
+        }
+        if scripts::decide_unresolved(&w) == Decision::Sniff && enabled(filters::script::NAME) {
+            return Some(filters::script::NAME);
+        }
+        return generic_if_listed(cmd, cfg);
+    }
+    match filters::find(cmd, &enabled) {
+        Some(f) => Some(f.name()),
+        None => generic_if_listed(cmd, cfg),
+    }
+}
+
+/// `rewrite.generic_commands` in hk.toml: wrap these with the generic filter.
+fn generic_if_listed(cmd: &Cmd, cfg: &Config) -> Option<&'static str> {
+    (cfg.filter_enabled(filters::generic::NAME)
+        && cfg.rewrite.generic_commands.contains(&cmd.program))
+    .then_some(filters::generic::NAME)
 }
 
 /// PostToolUse(Edit|Write|MultiEdit): format + autofix the touched file.
@@ -236,6 +304,103 @@ mod tests {
             pre("'/opt/hk/hk' run --filter cargo_test --session x -- cargo test"),
             None
         );
+    }
+
+    fn pre_with(cmd: &str, cwd: &Path, rules: &Rules, mode: &str) -> Option<String> {
+        let input = json!({
+            "session_id": "s",
+            "cwd": cwd,
+            "permission_mode": mode,
+            "tool_name": "Bash",
+            "tool_input": {"command": cmd}
+        });
+        let out = pre_tool_use(&input, "hk", rules)?;
+        Some(
+            out["hookSpecificOutput"]["updatedInput"]["command"]
+                .as_str()?
+                .to_string(),
+        )
+    }
+
+    #[test]
+    fn rewrites_pipelines_keeping_the_pipe() {
+        assert_eq!(
+            pre("cargo test 2>&1").as_deref(),
+            Some("'/opt/hk/hk' run --filter cargo_test --session abc-123 -- cargo test 2>&1")
+        );
+        assert_eq!(
+            pre("cargo test 2>&1 | tail -20").as_deref(),
+            Some("'/opt/hk/hk' run --filter cargo_test --session abc-123 --piped -- cargo test 2>&1 | tail -20")
+        );
+        assert_eq!(
+            pre("cd a && cargo test |& grep -E 'FAIL|panicked'").as_deref(),
+            Some("cd a && cargo test 2>&1 | '/opt/hk/hk' run --filter generic --session abc-123 -- grep -E 'FAIL|panicked'")
+        );
+        assert_eq!(pre("cargo test 2>&1 | sort"), None);
+        assert_eq!(pre("cargo test 2>/dev/null"), None);
+        assert_eq!(pre("cargo build && cargo test"), None);
+    }
+
+    #[test]
+    fn pipelines_respect_every_stage_rule() {
+        let tmp = std::env::temp_dir();
+        let r = |allow: &[&str], deny: &[&str]| Rules {
+            allow: allow.iter().map(|s| s.to_string()).collect(),
+            deny: deny.iter().map(|s| s.to_string()).collect(),
+            ask: vec![],
+        };
+        let c = "cargo test 2>&1 | tail -5";
+        // A denied stage blocks the rewrite, even under a catch-all allow.
+        assert!(pre_with(c, &tmp, &r(&["Bash"], &["Bash(tail:*)"]), "default").is_none());
+        // Only the left side allowed: not restated, so no rewrite in default mode.
+        assert!(pre_with(c, &tmp, &r(&["Bash(cargo test:*)"], &[]), "default").is_none());
+        let both = r(&["Bash(cargo test:*)", "Bash(tail:*)"], &[]);
+        let input = json!({"cwd": tmp, "tool_name": "Bash", "tool_input": {"command": c}});
+        let out = pre_tool_use(&input, "hk", &both).unwrap();
+        assert_eq!(out["hookSpecificOutput"]["permissionDecision"], "allow");
+    }
+
+    #[test]
+    fn resolves_script_wrappers() {
+        let dir = std::env::temp_dir().join(format!("hk-hook-scripts-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("web")).unwrap();
+        std::fs::write(
+            dir.join("web/package.json"),
+            r#"{"scripts":{"test":"vitest run","lint":"eslint .","dev":"vite","e2e":"playwright test"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("Makefile"),
+            "test:\n\tpytest -q\nserve:\n\tpython -m http.server\n",
+        )
+        .unwrap();
+        let all = Rules {
+            allow: vec!["Bash".into()],
+            ..Rules::default()
+        };
+        let f = |c: &str| {
+            pre_with(c, &dir, &all, "default").map(|s| {
+                s.split("--filter ")
+                    .nth(1)
+                    .unwrap()
+                    .split(' ')
+                    .next()
+                    .unwrap()
+                    .to_string()
+            })
+        };
+        // Before v1.0 only `npm test` was wrapped, always with the vitest/jest filter.
+        assert_eq!(f("cd web && npm test").as_deref(), Some("js_test"));
+        assert_eq!(f("cd web && npm run lint").as_deref(), Some("lint"));
+        assert_eq!(f("cd web && pnpm lint").as_deref(), Some("lint"));
+        assert_eq!(f("cd web && npm run e2e").as_deref(), Some("playwright"));
+        assert_eq!(f("cd web && npm run dev"), None);
+        assert_eq!(f("cd web && npm run build").as_deref(), Some("script"));
+        assert_eq!(f("make test").as_deref(), Some("pytest"));
+        assert_eq!(f("make serve"), None);
+        assert_eq!(f("make"), None);
+        assert_eq!(f("just test").as_deref(), Some("script"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

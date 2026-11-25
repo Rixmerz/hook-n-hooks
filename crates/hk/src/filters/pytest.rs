@@ -15,6 +15,12 @@ impl Filter for Pytest {
         matches!(cmd.program.as_str(), "pytest" | "py.test")
     }
 
+    fn sniff(&self, output: &str) -> bool {
+        // `==== test session starts ====` plus the final summary line.
+        output.contains("test session starts")
+            && self.filter(output, 1, &Limits::default()).is_some()
+    }
+
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
         // Final line: `==== 1 failed, 2 passed in 0.09s ====` (or `-q`: `1 failed, 2 passed in 0.09s`).
         let summary = output

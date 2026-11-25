@@ -15,6 +15,12 @@ impl Filter for GoTest {
         cmd.program == "go" && cmd.subcommand() == Some("test")
     }
 
+    fn sniff(&self, output: &str) -> bool {
+        output.lines().any(|l| {
+            l.starts_with("ok  \t") || l.starts_with("FAIL\t") || l.starts_with("--- FAIL: ")
+        })
+    }
+
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
         let mut ok_pkgs = 0;
         let mut fail_pkgs = Vec::new();

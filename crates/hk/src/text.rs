@@ -88,6 +88,16 @@ pub fn push_capped(out: &mut Vec<String>, items: Vec<String>, cap: usize) {
     }
 }
 
+/// `FAIL name` followed by indented body lines.
+pub fn fail_block(name: &str, body: &[String]) -> String {
+    let mut s = format!("FAIL {name}");
+    for b in body {
+        s.push_str("\n  ");
+        s.push_str(b);
+    }
+    s
+}
+
 /// Order-preserving de-duplication.
 pub fn dedup(items: Vec<String>) -> Vec<String> {
     let mut seen = std::collections::HashSet::new();

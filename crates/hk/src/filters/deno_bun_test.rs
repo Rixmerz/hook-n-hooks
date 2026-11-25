@@ -15,6 +15,14 @@ impl Filter for DenoBunTest {
         matches!(cmd.program.as_str(), "deno" | "bun") && cmd.arg(0) == Some("test")
     }
 
+    fn sniff(&self, output: &str) -> bool {
+        output.lines().any(|l| {
+            let t = l.trim();
+            ((t.starts_with("ok |") || t.starts_with("FAILED |")) && t.contains(" passed"))
+                || (t.starts_with("Ran ") && t.contains(" tests across "))
+        })
+    }
+
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
         if let Some(s) = deno(output, exit, limits) {
             return Some(s);

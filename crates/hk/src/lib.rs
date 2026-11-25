@@ -10,6 +10,7 @@ pub mod paths;
 pub mod permissions;
 pub mod repomap;
 pub mod run;
+pub mod scripts;
 pub mod shell;
 pub mod stack;
 pub mod stats;

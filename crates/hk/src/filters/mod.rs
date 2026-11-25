@@ -15,11 +15,20 @@ use crate::config::Limits;
 pub mod build;
 pub mod cargo_test;
 pub mod deno_bun_test;
+pub mod docker;
+pub mod dotnet;
 pub mod generic;
+pub mod git;
 pub mod go_test;
 pub mod install;
 pub mod js_test;
+pub mod jvm;
+pub mod lint;
+pub mod listing;
+pub mod logs;
 pub mod pytest;
+pub mod script;
+pub mod test_runners;
 
 /// A parsed command line: the effective program and its arguments, after
 /// removing wrappers such as `npx`, `uv run`, `python -m` or `pnpm exec`.
@@ -43,6 +52,7 @@ impl Cmd {
                     skip_flags(&tail[1..])
                 }
                 ("python" | "python3" | "py", Some("-m")) => &tail[1..],
+                ("bundle", Some("exec")) => skip_flags(&tail[1..]),
                 _ => {
                     return Some(Cmd {
                         program: prog,
@@ -92,6 +102,12 @@ pub trait Filter: Sync {
     fn name(&self) -> &'static str;
     fn detect(&self, cmd: &Cmd) -> bool;
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String>;
+    /// True when `output` carries this tool's signature (a summary line, a
+    /// diagnostic format). Used by the `script` filter, which runs behind
+    /// `npm run`, `make` and friends and cannot tell from the command line.
+    fn sniff(&self, _output: &str) -> bool {
+        false
+    }
 }
 
 /// All specific filters, in priority order. The generic filter is not listed:
@@ -103,8 +119,20 @@ pub fn registry() -> &'static [&'static dyn Filter] {
         &js_test::JsTest,
         &go_test::GoTest,
         &deno_bun_test::DenoBunTest,
+        &test_runners::Rspec,
+        &test_runners::Phpunit,
+        &test_runners::MixTest,
+        &test_runners::Playwright,
+        &jvm::Jvm,
+        &dotnet::Dotnet,
         &build::Build,
+        &lint::Lint,
         &install::Install,
+        &git::Git,
+        &docker::Docker,
+        &logs::Logs,
+        &listing::Listing,
+        &script::Script,
     ]
 }
 
