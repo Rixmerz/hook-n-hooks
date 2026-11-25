@@ -1,0 +1,81 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: git
+raw chars: 24457
+compact chars: 1230
+--- final output
+3 file(s) changed, +546 -1
+ CONTRIBUTING.md | +98 -0
+ README.md | +211 -1
+ docs/ARCHITECTURE.md | +237 -0
+--- first 30 of 566 diff lines
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..60ecf89
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,98 @@
++# Contributing
++
++Thanks for helping save tokens. The most useful contribution is a new filter, or
++a better one, together with real fixtures.
++
++## Ground rules
++
++- Everything in the repository is in English: code, comments, docs, commit
++  messages, CLI strings and test names.
++- Never hide information without a trace. A filter may drop lines only because
++  the runner always prints the path to the full log. A filter must keep
++  everything needed to act on a failure: which test, where it failed, and why.
++- When in doubt, return `None`. The runner then falls back to the generic
++  filter.
++- Keep it fast and dependency-light. Do not spawn processes from filters, and do
++  not add async runtimes.
++- No telemetry, ever.
++
++## Adding a filter
++
++1. **Capture real output.** Run the tool once passing and once failing, then
++   save both outputs with stderr merged and colours off:
++
++   ```sh
+[hk] ... 536 more diff lines in the full log
+--- git filter output
+3 file(s) changed, +546 -1
+ CONTRIBUTING.md | +98 -0
+ README.md | +211 -1
+ docs/ARCHITECTURE.md | +237 -0
+--- first 30 of 566 diff lines
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..60ecf89
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,98 @@
++# Contributing
++
++Thanks for helping save tokens. The most useful contribution is a new filter, or
++a better one, together with real fixtures.
++
++## Ground rules
++
++- Everything in the repository is in English: code, comments, docs, commit
++  messages, CLI strings and test names.
++- Never hide information without a trace. A filter may drop lines only because
++  the runner always prints the path to the full log. A filter must keep
++  everything needed to act on a failure: which test, where it failed, and why.
++- When in doubt, return `None`. The runner then falls back to the generic
++  filter.
++- Keep it fast and dependency-light. Do not spawn processes from filters, and do
++  not add async runtimes.
++- No telemetry, ever.
++
++## Adding a filter
++
++1. **Capture real output.** Run the tool once passing and once failing, then
++   save both outputs with stderr merged and colours off:
++
++   ```sh
+[hk] ... 536 more diff lines in the full log
