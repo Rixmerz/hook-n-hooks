@@ -1,0 +1,246 @@
+I001 [*] Import block is un-sorted or un-formatted
+ --> a.py:1:1
+  |
+1 | / import os, sys
+2 | | import json
+3 | | from typing import List
+  | |_______________________^
+help: Organize imports
+  |
+  - import os, sys
+1 | import json
+2 + import os
+3 + import sys
+4 | from typing import List
+  |
+
+F401 [*] `os` imported but unused
+ --> a.py:1:8
+  |
+1 | import os, sys
+  |        ^^
+2 | import json
+3 | from typing import List
+  |
+help: Remove unused import
+  |
+  - import os, sys
+1 | import json
+  |
+
+F401 [*] `sys` imported but unused
+ --> a.py:1:12
+  |
+1 | import os, sys
+  |            ^^^
+2 | import json
+3 | from typing import List
+  |
+help: Remove unused import
+  |
+  - import os, sys
+1 | import json
+  |
+
+F401 [*] `json` imported but unused
+ --> a.py:2:8
+  |
+1 | import os, sys
+2 | import json
+  |        ^^^^
+3 | from typing import List
+  |
+help: Remove unused import: `json`
+  |
+1 | import os, sys
+  - import json
+2 | from typing import List
+  |
+
+UP035 `typing.List` is deprecated, use `list` instead
+ --> a.py:3:1
+  |
+1 | import os, sys
+2 | import json
+3 | from typing import List
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+
+F841 Local variable `y` is assigned to but never used
+ --> a.py:7:5
+  |
+6 | def f(x: int) -> str:
+7 |     y = 1
+  |     ^
+8 |     return x + 1
+  |
+help: Remove assignment to unused variable `y`
+
+UP006 [*] Use `list` instead of `List` for type annotation
+  --> a.py:11:14
+   |
+11 | def g(items: List[int]) -> int:
+   |              ^^^^
+12 |     l = [i for i in items]
+13 |     return "nope"
+   |
+help: Replace with `list`
+   |
+10 |
+   - def g(items: List[int]) -> int:
+11 + def g(items: list[int]) -> int:
+12 |     l = [i for i in items]
+   |
+
+F841 Local variable `l` is assigned to but never used
+  --> a.py:12:5
+   |
+11 | def g(items: List[int]) -> int:
+12 |     l = [i for i in items]
+   |     ^
+13 |     return "nope"
+   |
+help: Remove assignment to unused variable `l`
+
+F821 Undefined name `undefined_name`
+  --> a.py:18:15
+   |
+16 | class C:
+17 |     def m(self) -> None:
+18 |         print(undefined_name)
+   |               ^^^^^^^^^^^^^^
+19 |         z: int = "s"
+   |
+
+F841 Local variable `z` is assigned to but never used
+  --> a.py:19:9
+   |
+17 |     def m(self) -> None:
+18 |         print(undefined_name)
+19 |         z: int = "s"
+   |         ^
+help: Remove assignment to unused variable `z`
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> b.py:1:1
+  |
+1 | / import os, sys
+2 | | import json
+3 | | from typing import List
+  | |_______________________^
+help: Organize imports
+  |
+  - import os, sys
+1 | import json
+2 + import os
+3 + import sys
+4 | from typing import List
+  |
+
+F401 [*] `os` imported but unused
+ --> b.py:1:8
+  |
+1 | import os, sys
+  |        ^^
+2 | import json
+3 | from typing import List
+  |
+help: Remove unused import
+  |
+  - import os, sys
+1 | import json
+  |
+
+F401 [*] `sys` imported but unused
+ --> b.py:1:12
+  |
+1 | import os, sys
+  |            ^^^
+2 | import json
+3 | from typing import List
+  |
+help: Remove unused import
+  |
+  - import os, sys
+1 | import json
+  |
+
+F401 [*] `json` imported but unused
+ --> b.py:2:8
+  |
+1 | import os, sys
+2 | import json
+  |        ^^^^
+3 | from typing import List
+  |
+help: Remove unused import: `json`
+  |
+1 | import os, sys
+  - import json
+2 | from typing import List
+  |
+
+UP035 `typing.List` is deprecated, use `list` instead
+ --> b.py:3:1
+  |
+1 | import os, sys
+2 | import json
+3 | from typing import List
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+
+F841 Local variable `y` is assigned to but never used
+ --> b.py:7:5
+  |
+6 | def f(x: int) -> str:
+7 |     y = 1
+  |     ^
+8 |     return x + 1
+  |
+help: Remove assignment to unused variable `y`
+
+UP006 [*] Use `list` instead of `List` for type annotation
+  --> b.py:11:14
+   |
+11 | def g(items: List[int]) -> int:
+   |              ^^^^
+12 |     l = [i for i in items]
+13 |     return "nope"
+   |
+help: Replace with `list`
+   |
+10 |
+   - def g(items: List[int]) -> int:
+11 + def g(items: list[int]) -> int:
+12 |     l = [i for i in items]
+   |
+
+F841 Local variable `l` is assigned to but never used
+  --> b.py:12:5
+   |
+11 | def g(items: List[int]) -> int:
+12 |     l = [i for i in items]
+   |     ^
+13 |     return "nope"
+   |
+help: Remove assignment to unused variable `l`
+
+F821 Undefined name `undefined_name`
+  --> b.py:18:15
+   |
+16 | class C:
+17 |     def m(self) -> None:
+18 |         print(undefined_name)
+   |               ^^^^^^^^^^^^^^
+19 |         z: int = "s"
+   |
+
+F841 Local variable `z` is assigned to but never used
+  --> b.py:19:9
+   |
+17 |     def m(self) -> None:
+18 |         print(undefined_name)
+19 |         z: int = "s"
+   |         ^
+help: Remove assignment to unused variable `z`
+
+Found 20 errors.
+[*] 10 fixable with the `--fix` option (6 hidden fixes can be enabled with the `--unsafe-fixes` option).

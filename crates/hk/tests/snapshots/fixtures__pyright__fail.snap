@@ -1,0 +1,23 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 918
+compact chars: 588
+--- final output
+✗ lint: 4 error(s), 2 warning(s)
+/home/dev/project/app/models.py:14: Type "int" is not assignable to return type "str"
+/home/dev/project/app/models.py:22: "undefined_name" is not defined (reportUndefinedVariable)
+/home/dev/project/app/views.py:9: Argument of type "Literal['x']" cannot be assigned to parameter "n" of type "int" in function "page"
+/home/dev/project/app/views.py:31: Cannot access attribute "nam" for class "User"
+/home/dev/project/app/models.py:3: Import "os" is not accessed (reportUnusedImport)
+/home/dev/project/app/views.py:40: Code is unreachable (reportUnreachable)
+--- lint filter output
+✗ lint: 4 error(s), 2 warning(s)
+/home/dev/project/app/models.py:14: Type "int" is not assignable to return type "str"
+/home/dev/project/app/models.py:22: "undefined_name" is not defined (reportUndefinedVariable)
+/home/dev/project/app/views.py:9: Argument of type "Literal['x']" cannot be assigned to parameter "n" of type "int" in function "page"
+/home/dev/project/app/views.py:31: Cannot access attribute "nam" for class "User"
+/home/dev/project/app/models.py:3: Import "os" is not accessed (reportUnusedImport)
+/home/dev/project/app/views.py:40: Code is unreachable (reportUnreachable)

@@ -1,0 +1,23 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 801
+compact chars: 557
+--- final output
+✗ lint: 6 error(s), 0 warning(s)
+internal/store/store.go:42: Error return value of `rows.Close` is not checked (errcheck)
+internal/store/store.go:88: ineffectual assignment to err (ineffassign)
+internal/api/handler.go:17: func `unusedHelper` is unused (unused)
+internal/api/handler.go:55: S1008: should use 'return ok' instead of 'if ok { return true }; return false' (gosimple)
+internal/api/handler.go:71: printf: fmt.Sprintf format %d has arg name of wrong type string (govet)
+cmd/server/main.go:23: SA4006: this value of `cfg` is never used (staticcheck)
+--- lint filter output
+✗ lint: 6 error(s), 0 warning(s)
+internal/store/store.go:42: Error return value of `rows.Close` is not checked (errcheck)
+internal/store/store.go:88: ineffectual assignment to err (ineffassign)
+internal/api/handler.go:17: func `unusedHelper` is unused (unused)
+internal/api/handler.go:55: S1008: should use 'return ok' instead of 'if ok { return true }; return false' (gosimple)
+internal/api/handler.go:71: printf: fmt.Sprintf format %d has arg name of wrong type string (govet)
+cmd/server/main.go:23: SA4006: this value of `cfg` is never used (staticcheck)

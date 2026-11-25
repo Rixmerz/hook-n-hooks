@@ -1,4 +1,4 @@
-//! Build and typecheck output: `cargo build|check|clippy`, `tsc`, `go build|vet`.
+//! Build and typecheck output: `cargo build|check`, `tsc`, `go build|vet`.
 //!
 //! Output: one line per diagnostic as `file:line: msg`, de-duplicated, errors
 //! before warnings, capped at `limits.max_errors` with `+N more`.
@@ -16,14 +16,16 @@ impl Filter for Build {
 
     fn detect(&self, cmd: &Cmd) -> bool {
         match cmd.program.as_str() {
-            "cargo" => matches!(
-                cmd.subcommand(),
-                Some("build" | "b" | "check" | "c" | "clippy")
-            ),
+            "cargo" => matches!(cmd.subcommand(), Some("build" | "b" | "check" | "c")),
             "tsc" | "vue-tsc" => !cmd.has_arg("--watch") && !cmd.has_arg("-w"),
             "go" => matches!(cmd.subcommand(), Some("build" | "vet")),
             _ => false,
         }
+    }
+
+    fn sniff(&self, output: &str) -> bool {
+        let d = diagnostics(output);
+        !d.errors.is_empty() || !d.warnings.is_empty()
     }
 
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
@@ -65,7 +67,7 @@ impl Diagnostics {
 }
 
 /// Order-preserving de-duplication that keeps a repeat count: `msg (x3)`.
-fn dedup_count(items: Vec<String>) -> Vec<String> {
+pub fn dedup_count(items: Vec<String>) -> Vec<String> {
     let mut order: Vec<(String, usize)> = Vec::new();
     for it in items {
         match order.iter_mut().find(|(s, _)| *s == it) {
@@ -81,6 +83,15 @@ fn dedup_count(items: Vec<String>) -> Vec<String> {
 
 /// Extract rustc, tsc and go diagnostics from build output.
 pub fn diagnostics(output: &str) -> Diagnostics {
+    scan(output, true)
+}
+
+/// Extract rustc diagnostics only (clippy, cargo).
+pub fn rustc_diagnostics(output: &str) -> Diagnostics {
+    scan(output, false)
+}
+
+fn scan(output: &str, others: bool) -> Diagnostics {
     let mut d = Diagnostics::default();
     let lines: Vec<&str> = output.lines().collect();
     let mut i = 0;
@@ -107,6 +118,10 @@ pub fn diagnostics(output: &str) -> Diagnostics {
             continue;
         }
         // tsc: `src/a.ts(1,7): error TS2322: msg` or pretty `src/a.ts:1:7 - error TS2322: msg`.
+        if !others {
+            i += 1;
+            continue;
+        }
         if let Some(entry) = tsc_line(line) {
             if entry.contains(": warning") {
                 d.warnings.push(entry);

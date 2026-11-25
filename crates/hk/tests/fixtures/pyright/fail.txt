@@ -1,0 +1,12 @@
+/home/dev/project/app/models.py
+  /home/dev/project/app/models.py:3:8 - warning: Import "os" is not accessed (reportUnusedImport)
+  /home/dev/project/app/models.py:14:16 - error: Type "int" is not assignable to return type "str"
+    "int" is not assignable to "str" (reportReturnType)
+  /home/dev/project/app/models.py:22:15 - error: "undefined_name" is not defined (reportUndefinedVariable)
+/home/dev/project/app/views.py
+  /home/dev/project/app/views.py:9:5 - error: Argument of type "Literal['x']" cannot be assigned to parameter "n" of type "int" in function "page"
+    "Literal['x']" is not assignable to "int" (reportArgumentType)
+  /home/dev/project/app/views.py:31:12 - error: Cannot access attribute "nam" for class "User"
+    Attribute "nam" is unknown (reportAttributeAccessIssue)
+  /home/dev/project/app/views.py:40:1 - warning: Code is unreachable (reportUnreachable)
+4 errors, 2 warnings, 0 informations

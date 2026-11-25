@@ -1,0 +1,43 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 9714
+compact chars: 1269
+--- final output
+✗ lint: 3 error(s), 13 warning(s)
+a.js:4: This is an unexpected use of the debugger statement. (lint/suspicious/noDebugger)
+a.test.js:1: Illegal use of an import declaration outside of a module (parse)
+b.js:4: This is an unexpected use of the debugger statement. (lint/suspicious/noDebugger)
+a.js:1: This variable a is unused. (lint/correctness/noUnusedVariables)
+a.js:2: This variable b is unused. (lint/correctness/noUnusedVariables)
+a.js:3: This function f is unused. (lint/correctness/noUnusedVariables)
+a.js:5: This let declares a variable that is only assigned once. (lint/style/useConst)
+a.js:5: This variable unused is unused. (lint/correctness/noUnusedVariables)
+a.js:8: This variable c2 is unused. (lint/correctness/noUnusedVariables)
+a.ts:1: This variable x is unused. (lint/correctness/noUnusedVariables)
+b.js:1: This variable a is unused. (lint/correctness/noUnusedVariables)
+b.js:2: This variable b is unused. (lint/correctness/noUnusedVariables)
+b.js:3: This function f is unused. (lint/correctness/noUnusedVariables)
+b.js:5: This let declares a variable that is only assigned once. (lint/style/useConst)
+b.js:5: This variable unused is unused. (lint/correctness/noUnusedVariables)
+b.js:8: This variable c2 is unused. (lint/correctness/noUnusedVariables)
+--- lint filter output
+✗ lint: 3 error(s), 13 warning(s)
+a.js:4: This is an unexpected use of the debugger statement. (lint/suspicious/noDebugger)
+a.test.js:1: Illegal use of an import declaration outside of a module (parse)
+b.js:4: This is an unexpected use of the debugger statement. (lint/suspicious/noDebugger)
+a.js:1: This variable a is unused. (lint/correctness/noUnusedVariables)
+a.js:2: This variable b is unused. (lint/correctness/noUnusedVariables)
+a.js:3: This function f is unused. (lint/correctness/noUnusedVariables)
+a.js:5: This let declares a variable that is only assigned once. (lint/style/useConst)
+a.js:5: This variable unused is unused. (lint/correctness/noUnusedVariables)
+a.js:8: This variable c2 is unused. (lint/correctness/noUnusedVariables)
+a.ts:1: This variable x is unused. (lint/correctness/noUnusedVariables)
+b.js:1: This variable a is unused. (lint/correctness/noUnusedVariables)
+b.js:2: This variable b is unused. (lint/correctness/noUnusedVariables)
+b.js:3: This function f is unused. (lint/correctness/noUnusedVariables)
+b.js:5: This let declares a variable that is only assigned once. (lint/style/useConst)
+b.js:5: This variable unused is unused. (lint/correctness/noUnusedVariables)
+b.js:8: This variable c2 is unused. (lint/correctness/noUnusedVariables)
