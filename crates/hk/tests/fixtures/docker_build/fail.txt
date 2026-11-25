@@ -1,0 +1,50 @@
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  2.048kB
+Step 1/5 : FROM ubuntu:24.04
+ ---> 2198e4c65076
+Step 2/5 : WORKDIR /app
+ ---> Running in f04b47a7d432
+ ---> Removed intermediate container f04b47a7d432
+ ---> d720f73759cc
+Step 3/5 : RUN echo "step one"
+ ---> Running in 7e266b990d51
+step one
+ ---> Removed intermediate container 7e266b990d51
+ ---> c54658e1eb63
+Step 4/5 : RUN for i in $(seq 1 30); do echo "building part $i"; done && cat /nonexistent/config.toml
+ ---> Running in 6a7d519eafa7
+building part 1
+building part 2
+building part 3
+building part 4
+building part 5
+building part 6
+building part 7
+building part 8
+building part 9
+building part 10
+building part 11
+building part 12
+building part 13
+building part 14
+building part 15
+building part 16
+building part 17
+building part 18
+building part 19
+building part 20
+building part 21
+building part 22
+building part 23
+building part 24
+building part 25
+building part 26
+building part 27
+building part 28
+building part 29
+building part 30
+[91mcat: /nonexistent/config.toml: No such file or directory
+[0mThe command '/bin/sh -c for i in $(seq 1 30); do echo "building part $i"; done && cat /nonexistent/config.toml' returned a non-zero code: 1

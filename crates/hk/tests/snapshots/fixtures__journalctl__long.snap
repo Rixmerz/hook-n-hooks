@@ -1,0 +1,27 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: logs
+raw chars: 9465
+compact chars: 646
+--- final output
+[hk] 153 lines, 8 after collapsing repeats
+Nov 25 10:00:00 web01 systemd[1]: Started api.service - Shop API.
+Nov 25 10:00:10 web01 api[2141]: INFO GET /api/products 200 11ms (x49 similar)
+Nov 25 10:00:20 web01 api[2141]: DEBUG cache hit ratio=0.82 (x49 similar)
+Nov 25 10:00:30 web01 api[2141]: INFO GET /health 200 4ms (x48 similar)
+Nov 25 10:04:10 web01 api[2141]: ERROR db: connection refused (127.0.0.1:5432), retrying in 5s (x3 similar)
+Nov 25 10:25:00 web01 systemd[1]: Stopping api.service - Shop API...
+Nov 25 10:25:01 web01 api[2141]: INFO shutting down gracefully
+Nov 25 10:25:01 web01 systemd[1]: api.service: Deactivated successfully.
+--- logs filter output
+[hk] 153 lines, 8 after collapsing repeats
+Nov 25 10:00:00 web01 systemd[1]: Started api.service - Shop API.
+Nov 25 10:00:10 web01 api[2141]: INFO GET /api/products 200 11ms (x49 similar)
+Nov 25 10:00:20 web01 api[2141]: DEBUG cache hit ratio=0.82 (x49 similar)
+Nov 25 10:00:30 web01 api[2141]: INFO GET /health 200 4ms (x48 similar)
+Nov 25 10:04:10 web01 api[2141]: ERROR db: connection refused (127.0.0.1:5432), retrying in 5s (x3 similar)
+Nov 25 10:25:00 web01 systemd[1]: Stopping api.service - Shop API...
+Nov 25 10:25:01 web01 api[2141]: INFO shutting down gracefully
+Nov 25 10:25:01 web01 systemd[1]: api.service: Deactivated successfully.

@@ -1,0 +1,15 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: docker
+raw chars: 1816
+compact chars: 103
+--- final output
+✓ docker: 6 build step(s) done
+Successfully built 7973e265b414
+Successfully tagged hk-fixture-ok:latest
+--- docker filter output
+✓ docker: 6 build step(s) done
+Successfully built 7973e265b414
+Successfully tagged hk-fixture-ok:latest

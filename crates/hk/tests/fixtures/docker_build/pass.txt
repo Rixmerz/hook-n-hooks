@@ -1,0 +1,73 @@
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  2.048kB
+Step 1/6 : FROM ubuntu:24.04
+ ---> 2198e4c65076
+Step 2/6 : WORKDIR /app
+ ---> Running in ee9d7dadc55d
+ ---> Removed intermediate container ee9d7dadc55d
+ ---> 97b9b4cf5b11
+Step 3/6 : RUN echo "setting up" && ls / | head -5
+ ---> Running in 4f5028a3521b
+setting up
+app
+bin
+boot
+dev
+etc
+ ---> Removed intermediate container 4f5028a3521b
+ ---> 45148931c346
+Step 4/6 : RUN for i in $(seq 1 40); do echo "compiling module $i"; done
+ ---> Running in 632c012ef0c0
+compiling module 1
+compiling module 2
+compiling module 3
+compiling module 4
+compiling module 5
+compiling module 6
+compiling module 7
+compiling module 8
+compiling module 9
+compiling module 10
+compiling module 11
+compiling module 12
+compiling module 13
+compiling module 14
+compiling module 15
+compiling module 16
+compiling module 17
+compiling module 18
+compiling module 19
+compiling module 20
+compiling module 21
+compiling module 22
+compiling module 23
+compiling module 24
+compiling module 25
+compiling module 26
+compiling module 27
+compiling module 28
+compiling module 29
+compiling module 30
+compiling module 31
+compiling module 32
+compiling module 33
+compiling module 34
+compiling module 35
+compiling module 36
+compiling module 37
+compiling module 38
+compiling module 39
+compiling module 40
+ ---> Removed intermediate container 632c012ef0c0
+ ---> da327b41b9aa
+Step 5/6 : COPY . .
+ ---> 4d0b9d0e3e46
+Step 6/6 : CMD ["echo", "hello"]
+ ---> Running in 18a1b014f574
+ ---> Removed intermediate container 18a1b014f574
+ ---> 7973e265b414
+Successfully built 7973e265b414
+Successfully tagged hk-fixture-ok:latest

@@ -1,0 +1,153 @@
+Nov 25 10:00:00 web01 systemd[1]: Started api.service - Shop API.
+Nov 25 10:00:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:00:20 web01 api[2141]: DEBUG cache hit ratio=0.82
+Nov 25 10:00:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:00:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:00:50 web01 api[2141]: DEBUG cache hit ratio=0.85
+Nov 25 10:01:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:01:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:01:20 web01 api[2141]: DEBUG cache hit ratio=0.88
+Nov 25 10:01:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:01:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:01:50 web01 api[2141]: DEBUG cache hit ratio=0.91
+Nov 25 10:02:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:02:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:02:20 web01 api[2141]: DEBUG cache hit ratio=0.94
+Nov 25 10:02:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:02:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:02:50 web01 api[2141]: DEBUG cache hit ratio=0.97
+Nov 25 10:03:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:03:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:03:20 web01 api[2141]: DEBUG cache hit ratio=0.81
+Nov 25 10:03:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:03:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:03:50 web01 api[2141]: DEBUG cache hit ratio=0.84
+Nov 25 10:04:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:04:10 web01 api[2141]: ERROR db: connection refused (127.0.0.1:5432), retrying in 5s
+Nov 25 10:04:20 web01 api[2141]: DEBUG cache hit ratio=0.87
+Nov 25 10:04:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:04:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:04:50 web01 api[2141]: DEBUG cache hit ratio=0.90
+Nov 25 10:05:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:05:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:05:20 web01 api[2141]: DEBUG cache hit ratio=0.93
+Nov 25 10:05:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:05:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:05:50 web01 api[2141]: DEBUG cache hit ratio=0.96
+Nov 25 10:06:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:06:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:06:20 web01 api[2141]: DEBUG cache hit ratio=0.80
+Nov 25 10:06:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:06:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:06:50 web01 api[2141]: DEBUG cache hit ratio=0.83
+Nov 25 10:07:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:07:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:07:20 web01 api[2141]: DEBUG cache hit ratio=0.86
+Nov 25 10:07:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:07:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:07:50 web01 api[2141]: DEBUG cache hit ratio=0.89
+Nov 25 10:08:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:08:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:08:20 web01 api[2141]: DEBUG cache hit ratio=0.92
+Nov 25 10:08:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:08:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:08:50 web01 api[2141]: DEBUG cache hit ratio=0.95
+Nov 25 10:09:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:09:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:09:20 web01 api[2141]: DEBUG cache hit ratio=0.98
+Nov 25 10:09:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:09:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:09:50 web01 api[2141]: DEBUG cache hit ratio=0.82
+Nov 25 10:10:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:10:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:10:20 web01 api[2141]: DEBUG cache hit ratio=0.85
+Nov 25 10:10:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:10:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:10:50 web01 api[2141]: DEBUG cache hit ratio=0.88
+Nov 25 10:11:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:11:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:11:20 web01 api[2141]: DEBUG cache hit ratio=0.91
+Nov 25 10:11:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:11:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:11:50 web01 api[2141]: DEBUG cache hit ratio=0.94
+Nov 25 10:12:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:12:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:12:20 web01 api[2141]: DEBUG cache hit ratio=0.97
+Nov 25 10:12:30 web01 api[2141]: ERROR db: connection refused (127.0.0.1:5432), retrying in 5s
+Nov 25 10:12:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:12:50 web01 api[2141]: DEBUG cache hit ratio=0.81
+Nov 25 10:13:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:13:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:13:20 web01 api[2141]: DEBUG cache hit ratio=0.84
+Nov 25 10:13:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:13:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:13:50 web01 api[2141]: DEBUG cache hit ratio=0.87
+Nov 25 10:14:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:14:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:14:20 web01 api[2141]: DEBUG cache hit ratio=0.90
+Nov 25 10:14:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:14:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:14:50 web01 api[2141]: DEBUG cache hit ratio=0.93
+Nov 25 10:15:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:15:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:15:20 web01 api[2141]: DEBUG cache hit ratio=0.96
+Nov 25 10:15:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:15:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:15:50 web01 api[2141]: DEBUG cache hit ratio=0.80
+Nov 25 10:16:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:16:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:16:20 web01 api[2141]: DEBUG cache hit ratio=0.83
+Nov 25 10:16:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:16:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:16:50 web01 api[2141]: DEBUG cache hit ratio=0.86
+Nov 25 10:17:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:17:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:17:20 web01 api[2141]: DEBUG cache hit ratio=0.89
+Nov 25 10:17:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:17:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:17:50 web01 api[2141]: DEBUG cache hit ratio=0.92
+Nov 25 10:18:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:18:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:18:20 web01 api[2141]: DEBUG cache hit ratio=0.95
+Nov 25 10:18:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:18:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:18:50 web01 api[2141]: DEBUG cache hit ratio=0.98
+Nov 25 10:19:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:19:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:19:20 web01 api[2141]: DEBUG cache hit ratio=0.82
+Nov 25 10:19:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:19:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:19:50 web01 api[2141]: DEBUG cache hit ratio=0.85
+Nov 25 10:20:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:20:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:20:20 web01 api[2141]: DEBUG cache hit ratio=0.88
+Nov 25 10:20:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:20:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:20:50 web01 api[2141]: ERROR db: connection refused (127.0.0.1:5432), retrying in 5s
+Nov 25 10:21:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:21:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:21:20 web01 api[2141]: DEBUG cache hit ratio=0.94
+Nov 25 10:21:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:21:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:21:50 web01 api[2141]: DEBUG cache hit ratio=0.97
+Nov 25 10:22:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:22:10 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:22:20 web01 api[2141]: DEBUG cache hit ratio=0.81
+Nov 25 10:22:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:22:40 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:22:50 web01 api[2141]: DEBUG cache hit ratio=0.84
+Nov 25 10:23:00 web01 api[2141]: INFO GET /health 200 3ms
+Nov 25 10:23:10 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:23:20 web01 api[2141]: DEBUG cache hit ratio=0.87
+Nov 25 10:23:30 web01 api[2141]: INFO GET /health 200 2ms
+Nov 25 10:23:40 web01 api[2141]: INFO GET /api/products 200 17ms
+Nov 25 10:23:50 web01 api[2141]: DEBUG cache hit ratio=0.90
+Nov 25 10:24:00 web01 api[2141]: INFO GET /health 200 1ms
+Nov 25 10:24:10 web01 api[2141]: INFO GET /api/products 200 11ms
+Nov 25 10:24:20 web01 api[2141]: DEBUG cache hit ratio=0.93
+Nov 25 10:24:30 web01 api[2141]: INFO GET /health 200 4ms
+Nov 25 10:24:40 web01 api[2141]: INFO GET /api/products 200 14ms
+Nov 25 10:24:50 web01 api[2141]: DEBUG cache hit ratio=0.96
+Nov 25 10:25:00 web01 systemd[1]: Stopping api.service - Shop API...
+Nov 25 10:25:01 web01 api[2141]: INFO shutting down gracefully
+Nov 25 10:25:01 web01 systemd[1]: api.service: Deactivated successfully.
