@@ -25,16 +25,57 @@ The Bash filters:
 | --- | --- | --- | --- |
 | `cargo_test` | `cargo test` | `✓ 342 passed` | each failing test, its panic location and assertion |
 | `pytest` | `pytest`, `python -m pytest`, `uv run pytest` | `✓ 2 passed` | each failing test, `>`/`E` lines, `file:line` |
-| `js_test` | `vitest run`, `jest`, `npm/pnpm/yarn test` | `✓ 1 passed` | test name, assertion, diff, first stack frame |
+| `js_test` | `vitest run`, `jest` | `✓ 1 passed` | test name, assertion, diff, first stack frame |
 | `go_test` | `go test` | `✓ 3 package(s) ok` | `--- FAIL` names plus `t.Errorf` lines |
 | `deno_bun_test` | `deno test`, `bun test` | `✓ 1 passed` | test name, error, diff, location |
-| `build` | `cargo build/check/clippy`, `tsc`, `go build/vet` | `✓ build ok` | one `file:line: msg` per diagnostic, de-duplicated, max 20 + `+N more` |
+| `rspec`, `phpunit`, `mix_test`, `playwright` | `rspec`, `phpunit`/`pest`, `mix test`, `playwright test --reporter=list` (also `line`, `dot`, `github`) | the count line | each failing test with its assertion and location |
+| `jvm` | `mvn`, `mvnw`, `gradle`, `gradlew` | `✓ mvn: BUILD SUCCESS \| Tests run: …` | failing tests, compiler errors as `file:line: msg`, "What went wrong" |
+| `dotnet` | `dotnet build/test`, `msbuild` | the count line | `File.cs:10: error CS…` (de-duplicated), failing tests with message and frame |
+| `build` | `cargo build/check`, `tsc`, `go build/vet` | `✓ build ok` | one `file:line: msg` per diagnostic, de-duplicated, max 20 + `+N more` |
+| `lint` | `cargo clippy`, `eslint`, `ruff check`, `biome check/lint/ci`, `mypy`, `pyright`, `golangci-lint run` | `✓ lint clean` | count line, then one `file:line: msg` per issue, de-duplicated, max 20 + `+N more` |
 | `install` | `npm/pnpm/yarn/bun install`, `cargo fetch`, `pip`, `uv`, `poetry` | the result lines | errors kept; progress bars and deprecation noise dropped |
+| `git` | `git diff`, `git show`, unbounded `git log` | unchanged if short | long: stat summary + first diff lines, or the first commits |
+| `docker` | `docker build`, `docker buildx build`, `docker compose build`, `docker compose up -d` | the result (image, tags, containers) | the failing step, the tail of its output, the error lines |
+| `logs` | `docker logs`, `docker compose logs`, `kubectl logs`, `journalctl`, `curl -v` | unchanged if short | repeated lines collapsed (`(x120 similar)`), then head/tail; curl's TLS noise dropped |
+| `listing` | `find`, `ls -R`, `tree`, `du` | unchanged if short | counts per directory, first entries, heavy-dir hint; `du`: largest first |
+| `script` | `npm/pnpm/yarn/bun run <s>`, `npm test`, `make`, `just`, `task` when the script could not be resolved | picked from the output signature | same |
 | `generic` | fallback, or commands listed in `rewrite.generic_commands` | output unchanged if short | head 30 + tail 30 lines |
 
 ANSI colours are always stripped. If a filter does not recognise an output, the
 generic filter is used instead. A "summary" that would be longer than the
 original output is never used.
+
+Scripted forms are never wrapped, because a script or the model may parse
+them: `git --porcelain`, `-z`, `--format`, `--stat`, `git log -n N`, linters'
+JSON/SARIF formats, `find -exec`/`-print0`, `tree -J`. Commands that never end
+are never wrapped either: watch modes, `dev`/`start`/`serve` scripts, foreground
+`docker compose up`, and `-f`/`--follow` logs.
+
+### Script wrappers
+
+`npm test`, `npm run lint`, `pnpm build`, `make test` or `just check` say nothing
+about their output, so the hook looks at what they run: `scripts.<name>` in
+`package.json`, a one-line Makefile rule, or a one-line justfile recipe. If that
+is a simple command (`vitest run`, `eslint .`, `cargo test`), its filter is
+used. Otherwise, for names that terminate (`test`, `build`, `lint`, `check`,
+`ci`, `typecheck`...), the `script` filter recognises the output by its
+signature. Anything else, including `npm run dev`, is left alone.
+
+### Pipes
+
+Three shapes are rewritten. Everything else with a pipe, a redirection, `;` or
+`&&` is left alone (except a leading `cd DIR &&`).
+
+| Command | Becomes |
+| --- | --- |
+| `cargo test 2>&1` | `hk run -- cargo test 2>&1` |
+| `cargo test 2>&1 \| tail -20` | `hk run --piped -- cargo test 2>&1 \| tail -20` (the log path is printed first and last, so the slice keeps it) |
+| `cargo test 2>&1 \| grep FAIL` | `cargo test 2>&1 \| hk run -- grep FAIL` (grep still sees the raw output; hk caps what grep prints) |
+
+The pipe stays in the shell, so the exit status is exactly what Bash would have
+reported. A pipe without `2>&1` is left alone: `hk run` merges stderr, which
+would change what `tail` or `grep` sees. Every stage is checked against your
+permission rules.
 
 ### Before and after
 
@@ -164,7 +205,7 @@ stack_lines = 5          # context lines kept per failing test
 
 [rewrite]
 enabled = true
-generic_commands = ["make", "just"]   # also wrap these with the generic filter
+generic_commands = ["bazel"]   # also wrap these with the generic filter
 unapproved = "skip"                   # or "rewrite"; see Permissions
 
 [format]

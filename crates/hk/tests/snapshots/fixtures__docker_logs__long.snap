@@ -1,0 +1,21 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: logs
+raw chars: 4138
+compact chars: 185
+--- final output
+[hk] 245 lines, 5 after collapsing repeats
+starting worker pid 1
+heartbeat ok (x120)
+GET /health 200 1ms (x120)
+ERROR: upstream timeout after 30s (attempt 40) (x3 similar)
+shutting down
+--- logs filter output
+[hk] 245 lines, 5 after collapsing repeats
+starting worker pid 1
+heartbeat ok (x120)
+GET /health 200 1ms (x120)
+ERROR: upstream timeout after 30s (attempt 40) (x3 similar)
+shutting down

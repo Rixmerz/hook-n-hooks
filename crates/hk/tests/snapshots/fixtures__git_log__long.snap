@@ -1,0 +1,69 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: git
+raw chars: 3477
+compact chars: 991
+--- final output
+commit f5f9debd4b5a77ad8e7209ab327f9cc6dade9297
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:27 2026 -0300
+
+    chore: ignore local agent and tool state
+
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 71826d222a4ba4d00c27f61f38d82478b8bc1bd8
+Merge: 7362a17 f3a035f
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:19 2026 -0300
+
+    Merge pull request #1 from Rixmerz/feat/v0.1
+
+    feat: hook-n-hooks v0.1 (token-saving hooks for Claude Code)
+
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+[hk] ... 5 more commit(s) not shown (8 total); the full log has them all
+--- git filter output
+commit f5f9debd4b5a77ad8e7209ab327f9cc6dade9297
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:27 2026 -0300
+
+    chore: ignore local agent and tool state
+
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 71826d222a4ba4d00c27f61f38d82478b8bc1bd8
+Merge: 7362a17 f3a035f
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:19 2026 -0300
+
+    Merge pull request #1 from Rixmerz/feat/v0.1
+
+    feat: hook-n-hooks v0.1 (token-saving hooks for Claude Code)
+
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+[hk] ... 5 more commit(s) not shown (8 total); the full log has them all

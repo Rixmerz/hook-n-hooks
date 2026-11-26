@@ -1,0 +1,33 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: jvm
+raw chars: 1561
+compact chars: 552
+--- final output
+✗ gradle: BUILD FAILED in 4s | 5 tests completed, 2 failed
+FAIL CalcTest > dividesByZero()
+  java.lang.ArithmeticException: / by zero
+  at demo.Calc.div(Calc.kt:9)
+  at demo.CalcTest.dividesByZero(CalcTest.kt:20)
+FAIL CalcTest > addsWrong()
+  org.opentest4j.AssertionFailedError: expected: <5> but was: <4>
+  at app//demo.CalcTest.addsWrong(CalcTest.kt:15)
+> Task :app:test FAILED
+What went wrong:
+  Execution failed for task ':app:test'.
+  > There were failing tests. See the report at: file:///home/dev/project/app/build/reports/tests/test/index.html
+--- jvm filter output
+✗ gradle: BUILD FAILED in 4s | 5 tests completed, 2 failed
+FAIL CalcTest > dividesByZero()
+  java.lang.ArithmeticException: / by zero
+  at demo.Calc.div(Calc.kt:9)
+  at demo.CalcTest.dividesByZero(CalcTest.kt:20)
+FAIL CalcTest > addsWrong()
+  org.opentest4j.AssertionFailedError: expected: <5> but was: <4>
+  at app//demo.CalcTest.addsWrong(CalcTest.kt:15)
+> Task :app:test FAILED
+What went wrong:
+  Execution failed for task ':app:test'.
+  > There were failing tests. See the report at: file:///home/dev/project/app/build/reports/tests/test/index.html

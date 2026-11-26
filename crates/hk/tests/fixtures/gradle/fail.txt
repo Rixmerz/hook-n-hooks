@@ -1,0 +1,46 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:processResources NO-SOURCE
+> Task :app:processTestResources NO-SOURCE
+> Task :app:compileKotlin
+> Task :app:compileJava NO-SOURCE
+> Task :app:classes UP-TO-DATE
+> Task :app:compileTestKotlin
+> Task :app:compileTestJava NO-SOURCE
+> Task :app:testClasses UP-TO-DATE
+
+> Task :app:test
+
+CalcTest > addsTwoNumbers() PASSED
+
+CalcTest > dividesByZero() FAILED
+    java.lang.ArithmeticException: / by zero
+        at demo.Calc.div(Calc.kt:9)
+        at demo.CalcTest.dividesByZero(CalcTest.kt:20)
+
+CalcTest > addsWrong() FAILED
+    org.opentest4j.AssertionFailedError: expected: <5> but was: <4>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//demo.CalcTest.addsWrong(CalcTest.kt:15)
+
+ParserTest > parsesEmptyInput() PASSED
+
+ParserTest > parsesNested() PASSED
+
+5 tests completed, 2 failed
+
+> Task :app:test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:test'.
+> There were failing tests. See the report at: file:///home/dev/project/app/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 4s
+4 actionable tasks: 3 executed, 1 up-to-date

@@ -1,0 +1,885 @@
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+    
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..cf4b08e
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,35 @@
++# Changelog
++
++All notable changes to this project are documented in this file.
++
++The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
++and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [Unreleased]
++
++## [0.1.0] - 2026-11-23
++
++### Added
++
++- `hk` binary with `run`, `hook`, `stats`, `filters`, `map` and `version`
++  subcommands.
++- PreToolUse(Bash) rewrite of simple commands to `hk run -- <cmd>`. The full log
++  is saved locally, its path is printed first, and the exit code is kept exactly.
++- Filters: `cargo_test`, `pytest`, `js_test` (vitest, jest), `go_test`,
++  `deno_bun_test`, `build` (cargo build/check/clippy, tsc, go build/vet),
++  `install` (npm, pnpm, yarn, bun, cargo fetch, pip, uv, poetry) and a
++  `generic` head/tail fallback.
++- The user's own Bash `allow`/`deny`/`ask` rules are checked against the original
++  command before rewriting.
++- PostToolUse(Edit|Write|MultiEdit): format and autofix only the touched file
++  with rustfmt, gofmt, ruff, biome, prettier or eslint, when installed.
++- SessionStart repo map: 2-level tree, detected stack, and resolved
++  build/test/lint commands.
++- Local-only `hk stats`: estimated tokens saved per filter and per session.
++- Optional `.claude/hk.toml` configuration.
++- Plugin manifest, marketplace, and a launcher that downloads the release binary
++  and verifies its SHA256.
++- CI on Linux, macOS and Windows, and a release workflow for six targets.
++
++[Unreleased]: https://github.com/Rixmerz/hook-n-hooks/compare/v0.1.0...HEAD
++[0.1.0]: https://github.com/Rixmerz/hook-n-hooks/releases/tag/v0.1.0
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+new file mode 100644
+index 0000000..60ecf89
+--- /dev/null
++++ b/CONTRIBUTING.md
+@@ -0,0 +1,98 @@
++# Contributing
++
++Thanks for helping save tokens. The most useful contribution is a new filter, or
++a better one, together with real fixtures.
++
++## Ground rules
++
++- Everything in the repository is in English: code, comments, docs, commit
++  messages, CLI strings and test names.
++- Never hide information without a trace. A filter may drop lines only because
++  the runner always prints the path to the full log. A filter must keep
++  everything needed to act on a failure: which test, where it failed, and why.
++- When in doubt, return `None`. The runner then falls back to the generic
++  filter.
++- Keep it fast and dependency-light. Do not spawn processes from filters, and do
++  not add async runtimes.
++- No telemetry, ever.
++
++## Adding a filter
++
++1. **Capture real output.** Run the tool once passing and once failing, then
++   save both outputs with stderr merged and colours off:
++
++   ```sh
++   NO_COLOR=1 mytool test > crates/hk/tests/fixtures/mytool/pass.txt 2>&1
++   NO_COLOR=1 mytool test > crates/hk/tests/fixtures/mytool/fail.txt 2>&1
++   ```
++
++   Replace personal paths (`/home/you/...`) with `/work`, and remove tokens and
++   hostnames. Do not hand-edit anything else. Fixtures are stored byte-exact
++   (see `.gitattributes`).
++
++2. **Write the module** `crates/hk/src/filters/mytool.rs`:
++
++   ```rust
++   use super::{Cmd, Filter};
++   use crate::config::Limits;
++
++   pub struct MyTool;
++
++   impl Filter for MyTool {
++       fn name(&self) -> &'static str { "mytool" }
++
++       fn detect(&self, cmd: &Cmd) -> bool {
++           cmd.program == "mytool" && cmd.subcommand() == Some("test")
++       }
++
++       fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
++           // `output` is already ANSI-stripped with CRLF normalised.
++           // Return None if you do not recognise it.
++           todo!()
++       }
++   }
++   ```
++
++   Conventions: on success, print one line (`✓ N passed`). On failure, print a
++   `✗` summary line, then one `FAIL <name>` block per failure, with at most
++   `limits.stack_lines` indented lines. Cap lists at `limits.max_errors` with
++   `text::push_capped` (`+N more`).
++
++3. **Register it.** Add `pub mod mytool;` and `&mytool::MyTool` to `registry()`
++   in `crates/hk/src/filters/mod.rs`. Add a line to the
++   `registry_routes_commands` test.
++
++4. **Add the fixture cases** to `CASES` in `crates/hk/tests/fixtures.rs`. Each
++   case is the fixture directory, the case name, the command line that
++   produced it, and its exit code.
++
++5. **Review the snapshots:**
++
++   ```sh
++   cargo test               # new snapshots are written as .snap.new
++   cargo insta review       # or: INSTA_UPDATE=always cargo test
++   ```
++
++   Read each snapshot. Would you be able to fix the failure from the compact
++   output alone? If not, keep more lines.
++
++6. Update the filter table in `README.md` and add a line to `CHANGELOG.md`
++   under `Unreleased`.
++
++## Before opening a PR
++
++```sh
++cargo fmt --all
++cargo clippy --workspace --all-targets -- -D warnings
++cargo test --workspace
++```
++
++CI runs these on Linux, macOS and Windows.
++
++## Releasing (maintainers)
++
++1. Bump the version in `Cargo.toml`, `.claude-plugin/plugin.json` and `bin/hk`
++   (`VERSION=`), then move `Unreleased` in `CHANGELOG.md` under the new version.
++2. Merge, then tag `vX.Y.Z` and push the tag. The release workflow checks that
++   the versions match, builds all six targets, and publishes the assets with
++   their `.sha256` files and `SHA256SUMS`.
+diff --git a/LICENSE-APACHE b/LICENSE-APACHE
+new file mode 100644
+index 0000000..d645695
+--- /dev/null
++++ b/LICENSE-APACHE
+@@ -0,0 +1,202 @@
++
++                                 Apache License
++                           Version 2.0, January 2004
++                        http://www.apache.org/licenses/
++
++   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
++
++   1. Definitions.
++
++      "License" shall mean the terms and conditions for use, reproduction,
++      and distribution as defined by Sections 1 through 9 of this document.
++
++      "Licensor" shall mean the copyright owner or entity authorized by
++      the copyright owner that is granting the License.
++
++      "Legal Entity" shall mean the union of the acting entity and all
++      other entities that control, are controlled by, or are under common
++      control with that entity. For the purposes of this definition,
++      "control" means (i) the power, direct or indirect, to cause the
++      direction or management of such entity, whether by contract or
++      otherwise, or (ii) ownership of fifty percent (50%) or more of the
++      outstanding shares, or (iii) beneficial ownership of such entity.
++
++      "You" (or "Your") shall mean an individual or Legal Entity
++      exercising permissions granted by this License.
++
++      "Source" form shall mean the preferred form for making modifications,
++      including but not limited to software source code, documentation
++      source, and configuration files.
++
++      "Object" form shall mean any form resulting from mechanical
++      transformation or translation of a Source form, including but
++      not limited to compiled object code, generated documentation,
++      and conversions to other media types.
++
++      "Work" shall mean the work of authorship, whether in Source or
++      Object form, made available under the License, as indicated by a
++      copyright notice that is included in or attached to the work
++      (an example is provided in the Appendix below).
++
++      "Derivative Works" shall mean any work, whether in Source or Object
++      form, that is based on (or derived from) the Work and for which the
++      editorial revisions, annotations, elaborations, or other modifications
++      represent, as a whole, an original work of authorship. For the purposes
++      of this License, Derivative Works shall not include works that remain
++      separable from, or merely link (or bind by name) to the interfaces of,
++      the Work and Derivative Works thereof.
++
++      "Contribution" shall mean any work of authorship, including
++      the original version of the Work and any modifications or additions
++      to that Work or Derivative Works thereof, that is intentionally
++      submitted to Licensor for inclusion in the Work by the copyright owner
++      or by an individual or Legal Entity authorized to submit on behalf of
++      the copyright owner. For the purposes of this definition, "submitted"
++      means any form of electronic, verbal, or written communication sent
++      to the Licensor or its representatives, including but not limited to
++      communication on electronic mailing lists, source code control systems,
++      and issue tracking systems that are managed by, or on behalf of, the
++      Licensor for the purpose of discussing and improving the Work, but
++      excluding communication that is conspicuously marked or otherwise
++      designated in writing by the copyright owner as "Not a Contribution."
++
++      "Contributor" shall mean Licensor and any individual or Legal Entity
++      on behalf of whom a Contribution has been received by Licensor and
++      subsequently incorporated within the Work.
++
++   2. Grant of Copyright License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      copyright license to reproduce, prepare Derivative Works of,
++      publicly display, publicly perform, sublicense, and distribute the
++      Work and such Derivative Works in Source or Object form.
++
++   3. Grant of Patent License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      (except as stated in this section) patent license to make, have made,
++      use, offer to sell, sell, import, and otherwise transfer the Work,
++      where such license applies only to those patent claims licensable
++      by such Contributor that are necessarily infringed by their
++      Contribution(s) alone or by combination of their Contribution(s)
++      with the Work to which such Contribution(s) was submitted. If You
++      institute patent litigation against any entity (including a
++      cross-claim or counterclaim in a lawsuit) alleging that the Work
++      or a Contribution incorporated within the Work constitutes direct
++      or contributory patent infringement, then any patent licenses
++      granted to You under this License for that Work shall terminate
++      as of the date such litigation is filed.
++
++   4. Redistribution. You may reproduce and distribute copies of the
++      Work or Derivative Works thereof in any medium, with or without
++      modifications, and in Source or Object form, provided that You
++      meet the following conditions:
++
++      (a) You must give any other recipients of the Work or
++          Derivative Works a copy of this License; and
++
++      (b) You must cause any modified files to carry prominent notices
++          stating that You changed the files; and
++
++      (c) You must retain, in the Source form of any Derivative Works
++          that You distribute, all copyright, patent, trademark, and
++          attribution notices from the Source form of the Work,
++          excluding those notices that do not pertain to any part of
++          the Derivative Works; and
++
++      (d) If the Work includes a "NOTICE" text file as part of its
++          distribution, then any Derivative Works that You distribute must
++          include a readable copy of the attribution notices contained
++          within such NOTICE file, excluding those notices that do not
++          pertain to any part of the Derivative Works, in at least one
++          of the following places: within a NOTICE text file distributed
++          as part of the Derivative Works; within the Source form or
++          documentation, if provided along with the Derivative Works; or,
++          within a display generated by the Derivative Works, if and
++          wherever such third-party notices normally appear. The contents
++          of the NOTICE file are for informational purposes only and
++          do not modify the License. You may add Your own attribution
++          notices within Derivative Works that You distribute, alongside
++          or as an addendum to the NOTICE text from the Work, provided
++          that such additional attribution notices cannot be construed
++          as modifying the License.
++
++      You may add Your own copyright statement to Your modifications and
++      may provide additional or different license terms and conditions
++      for use, reproduction, or distribution of Your modifications, or
++      for any such Derivative Works as a whole, provided Your use,
++      reproduction, and distribution of the Work otherwise complies with
++      the conditions stated in this License.
++
++   5. Submission of Contributions. Unless You explicitly state otherwise,
++      any Contribution intentionally submitted for inclusion in the Work
++      by You to the Licensor shall be under the terms and conditions of
++      this License, without any additional terms or conditions.
++      Notwithstanding the above, nothing herein shall supersede or modify
++      the terms of any separate license agreement you may have executed
++      with Licensor regarding such Contributions.
++
++   6. Trademarks. This License does not grant permission to use the trade
++      names, trademarks, service marks, or product names of the Licensor,
++      except as required for reasonable and customary use in describing the
++      origin of the Work and reproducing the content of the NOTICE file.
++
++   7. Disclaimer of Warranty. Unless required by applicable law or
++      agreed to in writing, Licensor provides the Work (and each
++      Contributor provides its Contributions) on an "AS IS" BASIS,
++      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++      implied, including, without limitation, any warranties or conditions
++      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
++      PARTICULAR PURPOSE. You are solely responsible for determining the
++      appropriateness of using or redistributing the Work and assume any
++      risks associated with Your exercise of permissions under this License.
++
++   8. Limitation of Liability. In no event and under no legal theory,
++      whether in tort (including negligence), contract, or otherwise,
++      unless required by applicable law (such as deliberate and grossly
++      negligent acts) or agreed to in writing, shall any Contributor be
++      liable to You for damages, including any direct, indirect, special,
++      incidental, or consequential damages of any character arising as a
++      result of this License or out of the use or inability to use the
++      Work (including but not limited to damages for loss of goodwill,
++      work stoppage, computer failure or malfunction, or any and all
++      other commercial damages or losses), even if such Contributor
++      has been advised of the possibility of such damages.
++
++   9. Accepting Warranty or Additional Liability. While redistributing
++      the Work or Derivative Works thereof, You may choose to offer,
++      and charge a fee for, acceptance of support, warranty, indemnity,
++      or other liability obligations and/or rights consistent with this
++      License. However, in accepting such obligations, You may act only
++      on Your own behalf and on Your sole responsibility, not on behalf
++      of any other Contributor, and only if You agree to indemnify,
++      defend, and hold each Contributor harmless for any liability
++      incurred by, or claims asserted against, such Contributor by reason
++      of your accepting any such warranty or additional liability.
++
++   END OF TERMS AND CONDITIONS
++
++   APPENDIX: How to apply the Apache License to your work.
++
++      To apply the Apache License to your work, attach the following
++      boilerplate notice, with the fields enclosed by brackets "[]"
++      replaced with your own identifying information. (Don't include
++      the brackets!)  The text should be enclosed in the appropriate
++      comment syntax for the file format. We also recommend that a
++      file or class name and description of purpose be included on the
++      same "printed page" as the copyright notice for easier
++      identification within third-party archives.
++
++   Copyright [yyyy] [name of copyright owner]
++
++   Licensed under the Apache License, Version 2.0 (the "License");
++   you may not use this file except in compliance with the License.
++   You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
+diff --git a/LICENSE-MIT b/LICENSE-MIT
+new file mode 100644
+index 0000000..dea417c
+--- /dev/null
++++ b/LICENSE-MIT
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 hook-n-hooks contributors
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/README.md b/README.md
+index 15953dc..700dfe8 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,213 @@
+ # hook-n-hooks
+ 
+-Token-saving hooks for Claude Code. Work in progress.
++Token-saving hooks for Claude Code. `hook-n-hooks` is a Claude Code plugin
++backed by one small Rust binary, `hk`. It cuts the tokens Claude spends reading
++test runs, build errors and package installs. It formats the files Claude edits,
++and it gives Claude a compact map of the repository at session start. It does
++not block anything: blocking and safety are what Claude Code's own permission
++modes are for.
++
++Nothing is hidden without a trace. Whenever output is compacted, the first line
++Claude sees is the path to the full log on your disk. There is no telemetry, and
++stats stay on your machine.
++
++## What it saves
++
++| Hook | What it does |
++| --- | --- |
++| **PreToolUse (Bash)** | Rewrites a known command to `hk run -- <cmd>`. `hk run` runs it, saves the full log and prints a compact result. The exit code is kept exactly. |
++| **PostToolUse (Edit/Write)** | Formats and autofixes **only the touched file** with rustfmt, gofmt, ruff, biome or prettier/eslint, if installed. It reports only the issues it could not fix. |
++| **SessionStart** | Adds a repo map: a 2-level tree, the detected stack, and the resolved build/test/lint commands. |
++
++The Bash filters:
++
++| Filter | Commands | On success | On failure |
++| --- | --- | --- | --- |
++| `cargo_test` | `cargo test` | `✓ 342 passed` | each failing test, its panic location and assertion |
++| `pytest` | `pytest`, `python -m pytest`, `uv run pytest` | `✓ 2 passed` | each failing test, `>`/`E` lines, `file:line` |
++| `js_test` | `vitest run`, `jest`, `npm/pnpm/yarn test` | `✓ 1 passed` | test name, assertion, diff, first stack frame |
++| `go_test` | `go test` | `✓ 3 package(s) ok` | `--- FAIL` names plus `t.Errorf` lines |
++| `deno_bun_test` | `deno test`, `bun test` | `✓ 1 passed` | test name, error, diff, location |
++| `build` | `cargo build/check/clippy`, `tsc`, `go build/vet` | `✓ build ok` | one `file:line: msg` per diagnostic, de-duplicated, max 20 + `+N more` |
++| `install` | `npm/pnpm/yarn/bun install`, `cargo fetch`, `pip`, `uv`, `poetry` | the result lines | errors kept; progress bars and deprecation noise dropped |
++| `generic` | fallback, or commands listed in `rewrite.generic_commands` | output unchanged if short | head 30 + tail 30 lines |
++
++ANSI colours are always stripped. If a filter does not recognise an output, the
++generic filter is used instead. A "summary" that would be longer than the
++original output is never used.
++
++### Before and after
++
++These numbers come from the snapshot tests over real captured outputs
++(`crates/hk/tests/snapshots/`). Tokens are estimated as characters / 4.
++
++`cargo test` with two failing tests: 909 chars (~227 tokens) become 250 chars
++(~62 tokens), plus the log line.
++
++```
++running 4 tests
++test tests::fails_one ... FAILED
++test tests::adds_neg ... ok
++...
++---- tests::fails_one stdout ----
++
++thread 'tests::fails_one' (12345) panicked at src/lib.rs:7:30:
++assertion `left == right` failed: math is broken
++  left: 4
++ right: 5
++note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
++...
++test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++```
++
++becomes
++
++```
++[hk] log: ~/.local/share/hk/logs/1795487589516338550-1540218-cargo_test.log
++✗ 2 failed, 2 passed
++FAIL tests::fails_one
++  panicked at src/lib.rs:7:30:
++  assertion `left == right` failed: math is broken
++  left: 4
++  right: 5
++FAIL tests::panics
++  panicked at src/lib.rs:8:62:
++  index out of bounds: the len is 0 but the index is 3
++```
++
++More examples from the fixtures:
++
++| Fixture | Raw chars | Compact chars |
++| --- | ---: | ---: |
++| `cargo test`, passing | 663 | 10 |
++| `pytest`, passing | 369 | 10 |
++| `pytest`, 1 failure | 810 | 163 |
++| `cargo build`, 3 errors | 1249 | 168 |
++| `vitest run`, 1 failure | 726 | 183 |
++| `pnpm install` with progress bars | 1519 | 136 |
++
++The log line adds about 80 characters to every wrapped command. Real projects
++produce far longer outputs than these small fixtures, so the savings grow with
++the size of the suite. Run `hk stats` to see your own numbers.
++
++## Install
++
++In Claude Code:
++
++```
++/plugin marketplace add Rixmerz/hook-n-hooks
++/plugin install hook-n-hooks@hook-n-hooks
++```
++
++On Claude Code 2.1.275 or later, this one line does both:
++
++```
++/plugin install hook-n-hooks --marketplace Rixmerz/hook-n-hooks
++```
++
++On its first run, the launcher (`bin/hk`) downloads the prebuilt `hk` binary for
++your platform from GitHub Releases and verifies its SHA256. It caches the binary
++under `${CLAUDE_PLUGIN_DATA}`. After that, each hook is a single `exec`.
++Prebuilt targets: Linux (musl) and macOS for x86_64 and aarch64, and Windows
++(MSVC) for x86_64 and aarch64.
++
++To build from source instead, or if the download is not possible:
++
++```
++cargo install --git https://github.com/Rixmerz/hook-n-hooks hk
++```
++
++The launcher uses an `hk` on `PATH` when its version matches the plugin's. You
++can also point it at a binary with `HK_BIN=/path/to/hk`.
++
++**Windows:** Claude Code runs hook commands through Git Bash, which the launcher
++needs. Without Git Bash, Claude Code has no Bash tool, so there are no Bash
++commands to compact. Formatting and the repo map then need `HK_BIN` set or an
++`hk.exe` on `PATH`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#windows).
++
++## Permissions
++
++Claude Code checks permission rules against the rewritten command, not the one
++Claude wrote. Before it rewrites a command, `hk` checks the original command
++against your own rules in `~/.claude/settings.json`, `.claude/settings.json` and
++`.claude/settings.local.json`:
++
++- **A `deny` or `ask` rule matches:** the command is not rewritten, so your rule
++  keeps working.
++- **An `allow` rule matches** (for example `Bash(cargo test:*)`): the command is
++  rewritten, and `hk` passes your decision on as `allow`. `hk` never allows a
++  command your rules did not allow.
++- **No rule matches:** in `auto` and `bypassPermissions` mode the command is
++  rewritten and Claude Code's normal checks still apply. In other modes it is
++  left alone, so the approval prompt shows the command Claude wrote. To change
++  this, set `rewrite.unapproved = "rewrite"`.
++
++Rules you pass on the command line (`--allowedTools`) and managed settings are
++not visible to hooks.
++
++## Configuration
++
++`hk` works without configuration. To change it, add an optional
++`.claude/hk.toml` to the project. Every key is optional:
++
++```toml
++[filters]          # turn individual filters off
++pytest = true
++install = false
++
++[limits]
++generic_max_lines = 80   # generic filter: truncate above this many lines
++head = 30
++tail = 30
++max_errors = 20          # diagnostics/failures listed before "+N more"
++stack_lines = 5          # context lines kept per failing test
++
++[rewrite]
++enabled = true
++generic_commands = ["make", "just"]   # also wrap these with the generic filter
++unapproved = "skip"                   # or "rewrite"; see Permissions
++
++[format]
++enabled = true
++
++[session_start]
++enabled = true
++```
++
++## Stats
++
++```
++$ hk stats
++Estimated tokens saved: 218 over 2 run(s) (1248 -> 376 chars, tokens = chars/4)
++
++filter             runs tokens saved
++cargo_test            1          145
++pytest                1           72
++```
++
++Each wrapped run appends one line to `stats.jsonl` in the data directory:
++`~/.local/share/hk` on Linux, `~/Library/Application Support/hk` on macOS, and
++`%LOCALAPPDATA%\hk` on Windows. The estimate is characters / 4. Raw output is
++capped at 30,000 characters, the length at which Claude Code truncates Bash
++output itself. The printed log line counts as output. Logs are pruned to the
++latest 200.
++
++## Other commands
++
++```
++hk run [--filter NAME] -- <cmd> [args...]   # use a filter by hand
++hk filters                                  # list filters
++hk map [DIR]                                # print the SessionStart repo map
++```
++
++## Documentation
++
++- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it works, the verified hook
++  schema, and the design decisions
++- [CONTRIBUTING.md](CONTRIBUTING.md): how to add a filter and its fixtures
++- [ROADMAP.md](ROADMAP.md) and [CHANGELOG.md](CHANGELOG.md)
++
++## License
++
++Dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your
++option.
+diff --git a/ROADMAP.md b/ROADMAP.md
+new file mode 100644
+index 0000000..f7f0c5f
+--- /dev/null
++++ b/ROADMAP.md
+@@ -0,0 +1,25 @@
++# Roadmap
++
++## Out of scope for v0.1
++
++- **MCP output compaction.** Use PostToolUse `updatedToolOutput` (verified to
++  exist) to shrink large MCP tool results, keeping the full result in a local
++  log.
++- **Repeated-read detection.** Notice when Claude reads a file it has already
++  read and that has not changed since, and say so instead of sending the whole
++  file again.
++- **Large-file outline.** When a Read targets a very large file, offer an outline
++  (symbols plus line ranges) first.
++- **PreCompact summaries.** Keep a compact, structured summary of the session
++  (decisions, files touched, failing tests) so less is lost at compaction.
++
++## Next
++
++- A PowerShell launcher (`bin/hk.ps1`) for Windows machines without Git Bash.
++- More filters: `cargo nextest`, `mvn`/`gradle`, `dotnet test`, `rspec`,
++  `phpunit`, `mix test`, `swift test`, `make` with compiler diagnostics.
++- Compound commands: compact the last stage of `a && b` chains.
++- A stream mode for very long runs: print the summary as test results arrive.
++- `hk stats --json` and a per-project breakdown.
++- Mirror permission rules more completely, once Claude Code documents its
++  matching semantics.
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+new file mode 100644
+index 0000000..b706182
+--- /dev/null
++++ b/docs/ARCHITECTURE.md
+@@ -0,0 +1,237 @@
++# Architecture
++
++`hook-n-hooks` is a Claude Code plugin made of two parts. One is a few JSON
++manifests. The other is a single Rust binary, `hk`, that every hook calls. The
++binary parses JSON in-process and never spawns `jq`, `grep` or a shell to make
++its decisions. A hook invocation takes about 1 ms plus process start-up.
++
++```
++.claude-plugin/plugin.json       plugin manifest
++.claude-plugin/marketplace.json  this repo is also its own marketplace
++hooks/hooks.json                 SessionStart, PreToolUse(Bash), PostToolUse(Edit|Write|MultiEdit)
++bin/hk                           POSIX sh launcher: find or download the binary, then exec it
++crates/hk/                       the binary
++  src/filters/                   one module per tool family, plus the registry
++  src/run.rs                     `hk run`: execute, tee the log, compact, keep the exit code
++  src/hook.rs                    hook handlers (all fail open)
++  src/permissions.rs             mirrors the user's Bash rules for the original command
++  src/shell.rs                   conservative parsing of simple Bash commands
++  src/format.rs                  per-file format and autofix
++  src/repomap.rs, src/stack.rs   SessionStart map, stack detection
++  src/stats.rs, src/paths.rs     local stats and data directory
++  tests/fixtures/<tool>/         real captured outputs
++  tests/snapshots/               insta snapshots of the compacted outputs
++```
++
++## What the docs say (verified)
++
++The design rests on the official documentation, read on 2026-11-23 at
++<https://code.claude.com/docs/en/hooks> (docs.claude.com redirects there),
++<https://code.claude.com/docs/en/plugins-reference> and
++<https://code.claude.com/docs/en/plugin-marketplaces>.
++
++Not everything was read. The last ~14k characters of the hooks page were not,
++and neither was the separate marketplace-reference page (the full `owner` and
++`source` schemas). Anything below that relies on those parts is marked
++*unverified*.
++
++### PreToolUse
++
++- Output: `hookSpecificOutput` with `hookEventName: "PreToolUse"`,
++  `permissionDecision` (`allow|deny|ask|defer`), `permissionDecisionReason`,
++  `updatedInput` and `additionalContext`.
++- **`updatedInput` exists, and it replaces the whole input object.** For Bash we
++  therefore copy every field (`command`, `description`, `timeout`,
++  `run_in_background`) and change only `command`.
++- `permissionDecision` is not required alongside `updatedInput`.
++- **Permission rules are evaluated against the input the hook returns.** We
++  checked this end to end with `claude -p --plugin-dir`. With
++  `--allowedTools 'Bash(cargo test:*)'`, the rewritten command was refused with
++  "This command requires approval". The same run with a project
++  `allow: ["Bash(cargo test:*)"]` succeeded, because `hk` restated the allow.
++  Auto mode accepted the rewritten command. See [Permissions](#permissions).
++- Exit code 2 blocks the tool call. `hk` never exits 2.
++
++### PostToolUse
++
++- Top level: `decision: "block"` and `reason`.
++  `hookSpecificOutput.additionalContext` is also available.
++- `updatedToolOutput` exists (and is preferred over `updatedMCPToolOutput`). It
++  can replace what Claude sees from a built-in tool, after the tool has run.
++- **A failed tool call fires `PostToolUseFailure`, which cannot rewrite
++  results.** A Bash command that exits non-zero is the case where compaction
++  saves the most, so rewriting output in PostToolUse would miss exactly that
++  case. That is why Bash compaction rewrites the command in PreToolUse
++  (`hk run -- <cmd>`) instead.
++- For Edit/Write we only add `additionalContext`.
++
++### SessionStart
++
++- Claude Code adds a SessionStart hook's plain-text stdout to Claude's context.
++  `hookSpecificOutput.additionalContext` also works. `hk` prints plain text.
++- Each field is capped at 10,000 characters. The map is capped at 4,000.
++
++### Input
++
++- Common fields: `session_id`, `transcript_path`, `cwd`, `permission_mode`,
++  `hook_event_name`. Tool events add `tool_name`, `tool_input` and
++  `tool_use_id`. PostToolUse adds `tool_response`.
++- Command hooks must print only the JSON object on stdout.
++
++### Plugins
++
++- `.claude-plugin/plugin.json` requires only `name`. `hooks/hooks.json` needs
++  the top-level `"hooks"` wrapper.
++- `${CLAUDE_PLUGIN_ROOT}` is the installed plugin directory, which changes on
++  update. `${CLAUDE_PLUGIN_DATA}` is `~/.claude/plugins/data/<id>/`, which
++  survives updates and is removed on uninstall. Both are also set as environment
++  variables for hook processes.
++- On Windows, shell-form hook commands run through Git Bash, or through
++  PowerShell when Git Bash is missing. Without Git Bash the Bash tool is not
++  registered.
++- Marketplace: `.claude-plugin/marketplace.json` with `name`, `owner` and
++  `plugins[]` (`name`, `source`). A relative `source` is resolved from the
++  marketplace root. `claude plugin validate .` passes on this repository.
++
++## Bash compaction
++
++1. **PreToolUse** gets `{"tool_name":"Bash","tool_input":{"command":"cargo test"}}`.
++2. `shell::parse` accepts only *simple* commands: an optional `cd DIR &&`
++   prefix, optional `NAME=value` assignments, then plain words. Pipes,
++   redirections, `;`, `&&` chains, `$(...)`, backticks, subshells, background
++   `&` and newlines are all left alone. So are `run_in_background` and watch
++   modes (`--watch`, bare `vitest`, `dev`, `serve`).
++3. The filter registry picks the filter that owns the command.
++4. `permissions.rs` checks the original command against the user's rules (see
++   below).
++5. The command becomes
++   `cd DIR && NAME=v '<abs path to hk>' run --filter F --session S -- <original words>`.
++   The `cd` and the assignments stay in the parent shell, so the Bash tool's
++   working directory still carries over to later commands. The original words
++   are passed verbatim, so Bash still does the real quoting and expansion. `hk`
++   gets an argv and runs it directly, with no shell, so the same code runs on
++   every OS. On Windows, `.cmd` shims (npm, pnpm, npx) found on `PATH` run
++   through `cmd /C`.
++6. **`hk run`** prints `[hk] log: <path>` first and flushes it. Then it merges
++   the child's stdout and stderr into one pipe (`std::io::pipe`), which keeps
++   their interleaving. Every chunk is teed to the log as it arrives, so a
++   timeout kill still leaves the path in Claude's output and the log on disk.
++   Stdin is inherited.
++7. When the child exits, the cleaned output goes to the filter.
++   `text::clean` strips ANSI, normalises CRLF, and collapses `\r` progress
++   redraws. If the filter returns `None`, or a result that is not shorter than
++   the input, the generic filter is used. `hk` then prints the result, appends
++   a stats record, and exits with **the child's exact exit code**: on Unix,
++   `128 + signal` for a signal; on Windows, the full 32-bit code, through
++   `process::exit`.
++
++### Golden rule
++
++Any output Claude sees from a wrapped command starts with the path to the full
++raw log. Logs live in the data directory (`logs/`), and the latest 200 are kept.
++
++## Filter registry
++
++```rust
++pub trait Filter: Sync {
++    fn name(&self) -> &'static str;
++    fn detect(&self, cmd: &Cmd) -> bool;
++    fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String>;
++}
++```
++
++`Cmd` is the effective program and its arguments. Wrappers such as `npx`,
++`bunx`, `pnpm exec`, `uv run`, `poetry run` and `python -m` are already removed,
++and paths and `.exe` are stripped from the program name. Filters are listed in
++`filters::registry()`, in priority order. To add a tool, see
++[CONTRIBUTING.md](../CONTRIBUTING.md).
++
++## Permissions
++
++The rewrite changes the command string that permission rules are matched
++against. Left as it is, that would cause two problems. It would cause extra
++approval prompts for commands the user already allowed. Worse, it would bypass
++`deny` and `ask` rules, such as `Bash(npm install:*)`. So before rewriting,
++`permissions.rs` reads the `permissions.{allow,deny,ask}` arrays from
++`~/.claude/settings.json`, `$CLAUDE_PROJECT_DIR/.claude/settings.json` and
++`.claude/settings.local.json`, and checks the **original** command:
++
++| Original matches | Action |
++| --- | --- |
++| `deny` or `ask` (matched loosely) | no rewrite |
++| `allow` (matched strictly) | rewrite, and return `permissionDecision: "allow"` with the rule in the reason |
++| nothing, in `auto` or `bypassPermissions` mode | rewrite with no decision; Claude Code's checks still apply |
++| nothing, in another mode | no rewrite (`rewrite.unapproved = "rewrite"` changes this) |
++
++With a `cd`/env prefix, only a catch-all `Bash` rule is restated as allow.
++Rules from `--allowedTools` and managed settings are not visible to hooks, so
++they are not mirrored. A command allowed only through `--allowedTools` is
++therefore not rewritten in default mode.
++
++## PostToolUse formatting
++
++Only the touched file is passed to any tool, and a tool runs only if it is
++found: first in `node_modules/.bin` (walking up from the file), then on `PATH`.
++`which` is implemented in-process.
++
++| Extension | Tools |
++| --- | --- |
++| `.rs` | `rustfmt --emit stdout` fed through **stdin**, so it cannot follow `mod foo;` into other files. The edition comes from the nearest `Cargo.toml`; the file is written only if it changed |
++| `.go` | `gofmt -w` |
++| `.py`, `.pyi` | `ruff check --fix`, then `ruff format` |
++| js/ts/json/css/vue/svelte | `biome check --write` if present; otherwise `prettier --write` and `eslint --fix --format unix` |
++
++If the file changed, the context says so ("re-read before editing again"),
++because Claude's copy is now stale. Unfixed issues are listed, capped at
++`max_errors`. If there is nothing to report, the hook prints nothing.
++
++## SessionStart map
++
++`stack.rs` detects `Cargo.toml`, `package.json` (package manager from the
++lockfile; scripts `build`/`test`/`lint`; `tsconfig.json`), `deno.json[c]`
++(tasks), `pyproject.toml` (uv/poetry runner; ruff) and `go.mod`. `repomap.rs`
++prints the stacks, the resolved commands, and a 2-level tree, with directories
++first, at most 15 entries per directory, and vendored or build directories
++skipped.
++
++## Data, stats, privacy
++
++Logs and `stats.jsonl` live in a fixed per-OS directory (`paths.rs`), because
++`hk run` runs inside the Bash tool, which does not see `CLAUDE_PLUGIN_DATA`, and
++`hk stats` runs from your terminal. `HK_DATA_DIR` overrides it. Tokens are
++estimated as `chars / 4`. Raw output is capped at 30,000 characters (Claude
++Code's default Bash output limit) before computing savings, so the stats do not
++overclaim. Nothing is sent anywhere.
++
++## Distribution
++
++`bin/hk` is a POSIX `sh` launcher:
++
++1. `$HK_BIN` if it is set;
++2. the cached `${CLAUDE_PLUGIN_DATA}/bin/<version>/hk[.exe]`;
++3. an `hk` on `PATH` whose `hk version` matches;
++4. a download of `hk-<target>[.exe]` and `.sha256` from the `v<version>` GitHub
++   Release (curl, wget or PowerShell), verified with sha256sum, shasum or
++   certutil, then an atomic move into the cache.
++
++If every step fails, `hk hook …` exits 0 with no output (fail open). The reason
++goes to stderr, along with the `cargo install` fallback.
++
++### Windows
++
++Claude Code runs shell-form hook commands through Git Bash on Windows, so the
++`sh` launcher works there. Without Git Bash, Claude Code has no Bash tool, so
++Bash compaction does not apply anyway. The PowerShell fallback cannot run an
++extension-less `sh` script. Users without Git Bash need `hk.exe` on `PATH`, from
++`cargo install`, and then the formatting and SessionStart hooks have to point to
++it. A PowerShell launcher is on the roadmap. Release assets use the MSVC targets
++for x86_64 and aarch64.
++
++## Known limits
++
++- Only simple commands are rewritten. `cargo test 2>&1 | tail` is passed
++  through untouched.
++- `hk run` buffers the output for the filter; the log is written as the output
++  arrives. Watch modes are never wrapped.
++- Filters are heuristic. Anything a filter does not recognise falls back to
++  generic head/tail, which is never worse than the raw output plus one log line.

@@ -1,0 +1,25 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: phpunit
+raw chars: 641
+compact chars: 352
+--- final output
+✗ Tests: 10, Assertions: 14, Errors: 1, Failures: 1.
+FAIL Tests\PricingTest::testRoundHalfUp
+  DivisionByZeroError: Division by zero
+  /home/dev/project/src/Pricing.php:12
+  /home/dev/project/tests/PricingTest.php:9
+FAIL Tests\CartTest::testTotalAppliesDiscount
+  Failed asserting that 100 matches expected 90.
+  /home/dev/project/tests/CartTest.php:21
+--- phpunit filter output
+✗ Tests: 10, Assertions: 14, Errors: 1, Failures: 1.
+FAIL Tests\PricingTest::testRoundHalfUp
+  DivisionByZeroError: Division by zero
+  /home/dev/project/src/Pricing.php:12
+  /home/dev/project/tests/PricingTest.php:9
+FAIL Tests\CartTest::testTotalAppliesDiscount
+  Failed asserting that 100 matches expected 90.
+  /home/dev/project/tests/CartTest.php:21

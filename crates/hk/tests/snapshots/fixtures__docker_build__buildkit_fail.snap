@@ -1,0 +1,29 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: docker
+raw chars: 2007
+compact chars: 488
+--- final output
+✗ docker failed
+> [5/5] RUN npm run build:
+0.388 > api@1.4.0 build
+0.388 > tsc -p tsconfig.json
+0.388
+2.913 src/server.ts(14,7): error TS2322: Type 'string' is not assignable to type 'number'.
+2.914 src/routes/users.ts(31,18): error TS2339: Property 'nam' does not exist on type 'User'.
+ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 2
+Dockerfile:9
+ERROR: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 2
+--- docker filter output
+✗ docker failed
+> [5/5] RUN npm run build:
+0.388 > api@1.4.0 build
+0.388 > tsc -p tsconfig.json
+0.388
+2.913 src/server.ts(14,7): error TS2322: Type 'string' is not assignable to type 'number'.
+2.914 src/routes/users.ts(31,18): error TS2339: Property 'nam' does not exist on type 'User'.
+ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 2
+Dockerfile:9
+ERROR: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 2

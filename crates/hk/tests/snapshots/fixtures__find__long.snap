@@ -1,0 +1,37 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: listing
+raw chars: 65630
+compact chars: 359
+--- final output
+[hk] 1265 entries
+[hk] heavy dirs: node_modules (1256). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+entries per top-level directory:
+  node_modules: 1256
+  .: 9
+first 8 entries outside heavy dirs:
+.
+./eslint.config.mjs
+./b.js
+./a.js
+./a.ts
+./a.test.js
+./package-lock.json
+./package.json
+--- listing filter output
+[hk] 1265 entries
+[hk] heavy dirs: node_modules (1256). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+entries per top-level directory:
+  node_modules: 1256
+  .: 9
+first 8 entries outside heavy dirs:
+.
+./eslint.config.mjs
+./b.js
+./a.js
+./a.ts
+./a.test.js
+./package-lock.json
+./package.json

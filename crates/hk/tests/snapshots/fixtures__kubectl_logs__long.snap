@@ -1,0 +1,19 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: logs
+raw chars: 15543
+compact chars: 474
+--- final output
+[hk] 141 lines, 4 after collapsing repeats
+2026-11-25T13:00:00.100Z level=info msg="request completed" method=GET path=/healthz status=200 duration_ms=0 (x69 similar)
+2026-11-25T13:00:07.101Z level=info msg="request completed" method=POST path=/orders status=201 duration_ms=21 (x70 similar)
+2026-11-25T13:09:30.190Z level=error msg="payment provider returned 502" order_id=4090 attempt=3
+2026-11-25T13:14:59.999Z level=fatal msg="worker pool exhausted" active=64 queued=512
+--- logs filter output
+[hk] 141 lines, 4 after collapsing repeats
+2026-11-25T13:00:00.100Z level=info msg="request completed" method=GET path=/healthz status=200 duration_ms=0 (x69 similar)
+2026-11-25T13:00:07.101Z level=info msg="request completed" method=POST path=/orders status=201 duration_ms=21 (x70 similar)
+2026-11-25T13:09:30.190Z level=error msg="payment provider returned 502" order_id=4090 attempt=3
+2026-11-25T13:14:59.999Z level=fatal msg="worker pool exhausted" active=64 queued=512

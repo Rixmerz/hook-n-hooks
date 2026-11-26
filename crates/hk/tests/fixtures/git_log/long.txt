@@ -1,0 +1,91 @@
+commit f5f9debd4b5a77ad8e7209ab327f9cc6dade9297
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:27 2026 -0300
+
+    chore: ignore local agent and tool state
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 71826d222a4ba4d00c27f61f38d82478b8bc1bd8
+Merge: 7362a17 f3a035f
+Author: Dev <dev@example.com>
+Date:   Tue Nov 24 18:08:19 2026 -0300
+
+    Merge pull request #1 from Rixmerz/feat/v0.1
+    
+    feat: hook-n-hooks v0.1 (token-saving hooks for Claude Code)
+
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+    
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 1d914f7e8e1cedf772a919118eb218f35e632c17
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:40:35 2026 -0300
+
+    ci: add fmt, clippy, cross-platform tests and release workflow
+    
+    Release builds musl Linux, macOS and MSVC Windows binaries for x86_64
+    and aarch64, writes a .sha256 per asset plus SHA256SUMS, and checks that
+    the tag matches every version string. Also run .cmd shims on Windows
+    through cmd /C only when such a shim exists on PATH.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit ba24a5a18a68e2ae9f53f6cfb7e272711b3a5d40
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:39:49 2026 -0300
+
+    feat: mirror user Bash permission rules before rewriting
+    
+    Claude Code evaluates permission rules against the rewritten command, so
+    an allow rule like Bash(cargo test:*) stopped matching and deny rules
+    could be bypassed. The PreToolUse hook now checks the original command
+    against the user's settings: deny/ask rules skip the rewrite, a matching
+    allow rule is restated as permissionDecision allow, and unmatched
+    commands are rewritten only in auto/bypassPermissions mode unless
+    rewrite.unapproved = "rewrite".
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 43db9c7464220915b7797ba126425e016fd70763
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:39:49 2026 -0300
+
+    feat: add plugin manifest, marketplace, hooks and launcher
+    
+    hooks/hooks.json wires SessionStart, PreToolUse(Bash) and
+    PostToolUse(Edit|Write|MultiEdit) to bin/hk, a POSIX sh launcher that
+    execs a cached binary or downloads the release asset for the platform
+    and verifies its SHA256. Hooks fail open when no binary is available.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 90e282da18a55839216d5fedb63eee4fcdce0049
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:33:39 2026 -0300
+
+    feat: add hk crate with output filters, hooks, format and stats
+    
+    Single binary with run, hook, stats, filters and map subcommands.
+    Filters for cargo test, pytest, vitest/jest, go test, deno/bun test,
+    build/typecheck diagnostics and installers, with a generic head/tail
+    fallback. Snapshot tests over real captured fixtures.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+commit 7362a17cb4b162cf5c0167d69a9eb9ad32bcbf86
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 22:09:59 2026 -0300
+
+    chore: initial commit
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

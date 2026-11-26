@@ -1,0 +1,27 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 783
+compact chars: 708
+--- final output
+✗ lint: 8 error(s), 0 warning(s)
+b.py:8: Incompatible return value type (got "int", expected "str")  [return-value]
+b.py:13: Incompatible return value type (got "str", expected "int")  [return-value]
+b.py:18: Name "undefined_name" is not defined  [name-defined]
+b.py:19: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+a.py:8: Incompatible return value type (got "int", expected "str")  [return-value]
+a.py:13: Incompatible return value type (got "str", expected "int")  [return-value]
+a.py:18: Name "undefined_name" is not defined  [name-defined]
+a.py:19: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+--- lint filter output
+✗ lint: 8 error(s), 0 warning(s)
+b.py:8: Incompatible return value type (got "int", expected "str")  [return-value]
+b.py:13: Incompatible return value type (got "str", expected "int")  [return-value]
+b.py:18: Name "undefined_name" is not defined  [name-defined]
+b.py:19: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+a.py:8: Incompatible return value type (got "int", expected "str")  [return-value]
+a.py:13: Incompatible return value type (got "str", expected "int")  [return-value]
+a.py:18: Name "undefined_name" is not defined  [name-defined]
+a.py:19: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]

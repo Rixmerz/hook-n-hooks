@@ -1,0 +1,25 @@
+internal/store/store.go:42:12: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	          ^
+internal/store/store.go:88:2: ineffectual assignment to err (ineffassign)
+	err = tx.Commit()
+	^
+internal/api/handler.go:17:6: func `unusedHelper` is unused (unused)
+func unusedHelper() string {
+     ^
+internal/api/handler.go:55:9: S1008: should use 'return ok' instead of 'if ok { return true }; return false' (gosimple)
+	if ok {
+	       ^
+internal/api/handler.go:71:3: printf: fmt.Sprintf format %d has arg name of wrong type string (govet)
+		fmt.Sprintf("user %d", name)
+		^
+cmd/server/main.go:23:2: SA4006: this value of `cfg` is never used (staticcheck)
+	cfg, err := load()
+	^
+6 issues:
+* errcheck: 1
+* gosimple: 1
+* govet: 1
+* ineffassign: 1
+* staticcheck: 1
+* unused: 1

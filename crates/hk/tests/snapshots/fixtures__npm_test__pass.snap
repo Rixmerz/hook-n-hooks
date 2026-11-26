@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: script
+raw chars: 250
+compact chars: 10
+--- final output
+✓ 1 passed
+--- script filter output
+✓ 1 passed

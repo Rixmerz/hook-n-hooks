@@ -1,0 +1,25 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: jvm
+raw chars: 901
+compact chars: 507
+--- final output
+✗ gradle: BUILD FAILED in 2s
+> Task :app:compileKotlin FAILED
+/home/dev/project/app/src/main/kotlin/demo/Calc.kt:5:21 Unresolved reference 'c'.
+/home/dev/project/app/src/main/kotlin/demo/Calc.kt:12:9 Return type mismatch: expected 'Int', actual 'String'.
+What went wrong:
+  Execution failed for task ':app:compileKotlin'.
+  > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+  > Compilation error. See log for more details
+--- jvm filter output
+✗ gradle: BUILD FAILED in 2s
+> Task :app:compileKotlin FAILED
+/home/dev/project/app/src/main/kotlin/demo/Calc.kt:5:21 Unresolved reference 'c'.
+/home/dev/project/app/src/main/kotlin/demo/Calc.kt:12:9 Return type mismatch: expected 'Int', actual 'String'.
+What went wrong:
+  Execution failed for task ':app:compileKotlin'.
+  > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+  > Compilation error. See log for more details

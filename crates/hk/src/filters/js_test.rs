@@ -1,6 +1,6 @@
-//! Vitest and Jest, called directly or through `npm test` / `pnpm test` /
-//! `yarn test` / `bun run test`. When a package script runs something else,
-//! the output is unrecognised and the generic filter takes over.
+//! Vitest and Jest. Behind `npm test` and other package scripts the hook
+//! resolves the script first (see `scripts.rs`), or the `script` filter
+//! recognises the output.
 
 use super::{Cmd, Filter};
 use crate::config::Limits;
@@ -14,15 +14,14 @@ impl Filter for JsTest {
     }
 
     fn detect(&self, cmd: &Cmd) -> bool {
-        match cmd.program.as_str() {
-            "vitest" | "jest" => true,
-            "npm" | "pnpm" | "yarn" => {
-                let a: Vec<&str> = cmd.args.iter().map(String::as_str).collect();
-                matches!(a.as_slice(), ["test", ..] | ["t", ..] | ["run", "test", ..])
-            }
-            "bun" => cmd.arg(0) == Some("run") && cmd.arg(1) == Some("test"),
-            _ => false,
-        }
+        matches!(cmd.program.as_str(), "vitest" | "jest")
+    }
+
+    fn sniff(&self, output: &str) -> bool {
+        output.lines().any(|l| {
+            let t = l.trim_start();
+            t.starts_with("Test Files ") || t.starts_with("Test Suites:")
+        })
     }
 
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {

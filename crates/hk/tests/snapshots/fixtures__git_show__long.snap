@@ -1,0 +1,105 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: git
+raw chars: 40933
+compact chars: 1856
+--- final output
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+7 file(s) changed, +829 -1
+ CHANGELOG.md | +35 -0
+ CONTRIBUTING.md | +98 -0
+ LICENSE-APACHE | +202 -0
+ LICENSE-MIT | +21 -0
+ README.md | +211 -1
+ ROADMAP.md | +25 -0
+ docs/ARCHITECTURE.md | +237 -0
+--- first 30 of 873 diff lines
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..cf4b08e
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,35 @@
++# Changelog
++
++All notable changes to this project are documented in this file.
++
++The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
++and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [Unreleased]
++
++## [0.1.0] - 2026-11-23
++
++### Added
++
++- `hk` binary with `run`, `hook`, `stats`, `filters`, `map` and `version`
++  subcommands.
++- PreToolUse(Bash) rewrite of simple commands to `hk run -- <cmd>`. The full log
++  is saved locally, its path is printed first, and the exit code is kept exactly.
++- Filters: `cargo_test`, `pytest`, `js_test` (vitest, jest), `go_test`,
++  `deno_bun_test`, `build` (cargo build/check/clippy, tsc, go build/vet),
++  `install` (npm, pnpm, yarn, bun, cargo fetch, pip, uv, poetry) and a
++  `generic` head/tail fallback.
++- The user's own Bash `allow`/`deny`/`ask` rules are checked against the original
++  command before rewriting.
++- PostToolUse(Edit|Write|MultiEdit): format and autofix only the touched file
+[hk] ... 843 more diff lines in the full log
+--- git filter output
+commit f3a035f80e4048b40b151a950f6f0f5dd561d1d4
+Author: Dev <dev@example.com>
+Date:   Mon Nov 23 23:42:24 2026 -0300
+    docs: add README, architecture, contributing, changelog, roadmap and licenses
+    ARCHITECTURE.md records what was verified in the Claude Code hooks and
+    plugin docs and why Bash compaction rewrites in PreToolUse. Dual
+    MIT/Apache-2.0 licensing.
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+7 file(s) changed, +829 -1
+ CHANGELOG.md | +35 -0
+ CONTRIBUTING.md | +98 -0
+ LICENSE-APACHE | +202 -0
+ LICENSE-MIT | +21 -0
+ README.md | +211 -1
+ ROADMAP.md | +25 -0
+ docs/ARCHITECTURE.md | +237 -0
+--- first 30 of 873 diff lines
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..cf4b08e
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,35 @@
++# Changelog
++
++All notable changes to this project are documented in this file.
++
++The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
++and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [Unreleased]
++
++## [0.1.0] - 2026-11-23
++
++### Added
++
++- `hk` binary with `run`, `hook`, `stats`, `filters`, `map` and `version`
++  subcommands.
++- PreToolUse(Bash) rewrite of simple commands to `hk run -- <cmd>`. The full log
++  is saved locally, its path is printed first, and the exit code is kept exactly.
++- Filters: `cargo_test`, `pytest`, `js_test` (vitest, jest), `go_test`,
++  `deno_bun_test`, `build` (cargo build/check/clippy, tsc, go build/vet),
++  `install` (npm, pnpm, yarn, bun, cargo fetch, pip, uv, poetry) and a
++  `generic` head/tail fallback.
++- The user's own Bash `allow`/`deny`/`ask` rules are checked against the original
++  command before rewriting.
++- PostToolUse(Edit|Write|MultiEdit): format and autofix only the touched file
+[hk] ... 843 more diff lines in the full log

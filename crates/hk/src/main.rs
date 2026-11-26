@@ -5,9 +5,10 @@ const USAGE: &str = "\
 hk - token-saving hooks for Claude Code
 
 Usage:
-  hk run [--filter NAME] [--session ID] -- <command> [args...]
+  hk run [--filter NAME] [--session ID] [--piped] -- <command> [args...]
       Run a command, save the full log locally, print a compact summary,
-      and exit with the command's exit code.
+      and exit with the command's exit code. --piped also prints the log
+      path last, for output that goes through `| tail` or `| head`.
   hk hook <pre-tool-use|post-tool-use|session-start>
       Hook entry points (read the hook JSON on stdin).
   hk stats [--session ID]
@@ -83,6 +84,7 @@ fn flag(args: &[String], name: &str) -> Option<String> {
 fn run_cmd(args: &[String]) -> i32 {
     let mut filter = None;
     let mut session = String::from("manual");
+    let mut piped = false;
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -98,12 +100,17 @@ fn run_cmd(args: &[String]) -> i32 {
                 session = args.get(i + 1).cloned().unwrap_or(session);
                 i += 2;
             }
+            "--piped" => {
+                piped = true;
+                i += 1;
+            }
             _ => break,
         }
     }
     run::run(run::RunArgs {
         filter,
         session,
+        piped,
         argv: args[i.min(args.len())..].to_vec(),
     })
 }

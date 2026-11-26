@@ -1,0 +1,67 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: logs
+raw chars: 3856
+compact chars: 1639
+--- final output
+[hk] 83 lines, 28 after collapsing repeats, 55 TLS/transfer noise lines dropped
+* Immediate connect fail for 2606:4700:10::6814:179a: Network is unreachable
+* connect to 2606:4700:10::6814:179a port 443 from :: port 0 failed: Network is unreachable
+* Immediate connect fail for 2606:4700:10::ac42:93f3: Network is unreachable
+* connect to 2606:4700:10::ac42:93f3 port 443 from :: port 0 failed: Network is unreachable
+*   subject: CN=example.com
+*   expire date: Feb 22 23:53:08 2027 GMT
+* SSL certificate verified via OpenSSL.
+* Established connection to example.com (172.66.147.243 port 443) from 192.0.2.10 port 39640
+* using HTTP/2
+> GET / HTTP/2
+> Host: example.com
+> User-Agent: curl/8.23.0
+> Accept: */*
+>
+< HTTP/2 200
+< date: Wed, 25 Nov 2026 23:39:10 GMT
+< content-type: text/html; charset=utf-8
+< server: cloudflare
+< last-modified: Tue, 24 Nov 2026 17:35:01 GMT
+< age: 5
+< allow: GET, HEAD
+< accept-ranges: bytes
+< cf-cache-status: HIT
+< cf-ray: a6047dbbda517473-MIA
+< alt-svc: h3=":443"; ma=86400
+<
+* Connection #0 to host example.com:443 left intact
+<!doctype html><html lang=en><head><meta charset=utf-8><link rel=icon href=data:,><meta name=viewport content="width=device-width,initial-scale=1"><title>Example Domain</title><style>html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-serif;max-width:26em;margin:auto;padding:25vh 2em 2em;text-align:center}</style></head><body><p>This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.</p><script src=/s.js></script></body></html>
+--- logs filter output
+[hk] 83 lines, 28 after collapsing repeats, 55 TLS/transfer noise lines dropped
+* Immediate connect fail for 2606:4700:10::6814:179a: Network is unreachable
+* connect to 2606:4700:10::6814:179a port 443 from :: port 0 failed: Network is unreachable
+* Immediate connect fail for 2606:4700:10::ac42:93f3: Network is unreachable
+* connect to 2606:4700:10::ac42:93f3 port 443 from :: port 0 failed: Network is unreachable
+*   subject: CN=example.com
+*   expire date: Feb 22 23:53:08 2027 GMT
+* SSL certificate verified via OpenSSL.
+* Established connection to example.com (172.66.147.243 port 443) from 192.0.2.10 port 39640
+* using HTTP/2
+> GET / HTTP/2
+> Host: example.com
+> User-Agent: curl/8.23.0
+> Accept: */*
+>
+< HTTP/2 200
+< date: Wed, 25 Nov 2026 23:39:10 GMT
+< content-type: text/html; charset=utf-8
+< server: cloudflare
+< last-modified: Tue, 24 Nov 2026 17:35:01 GMT
+< age: 5
+< allow: GET, HEAD
+< accept-ranges: bytes
+< cf-cache-status: HIT
+< cf-ray: a6047dbbda517473-MIA
+< alt-svc: h3=":443"; ma=86400
+<
+* Connection #0 to host example.com:443 left intact
+<!doctype html><html lang=en><head><meta charset=utf-8><link rel=icon href=data:,><meta name=viewport content="width=device-width,initial-scale=1"><title>Example Domain</title><style>html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-serif;max-width:26em;margin:auto;padding:25vh 2em 2em;text-align:center}</style></head><body><p>This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.</p><script src=/s.js></script></body></html>

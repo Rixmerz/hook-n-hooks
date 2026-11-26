@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: jvm
+raw chars: 2006
+compact chars: 71
+--- final output
+✓ mvn: BUILD SUCCESS | Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+--- jvm filter output
+✓ mvn: BUILD SUCCESS | Tests run: 3, Failures: 0, Errors: 0, Skipped: 0

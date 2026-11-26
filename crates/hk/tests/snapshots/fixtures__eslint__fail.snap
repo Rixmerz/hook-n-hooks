@@ -1,0 +1,47 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 1495
+compact chars: 1397
+--- final output
+✗ lint: 14 error(s), 4 warning(s)
+/home/dev/project/a.js:1: 'a' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:2: 'b' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:3: 'f' is defined but never used (no-unused-vars)
+/home/dev/project/a.js:4: Unexpected 'debugger' statement (no-debugger)
+/home/dev/project/a.js:5: 'unused' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:6: 'y' is not defined (no-undef)
+/home/dev/project/a.js:8: 'c2' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:1: 'a' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:2: 'b' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:3: 'f' is defined but never used (no-unused-vars)
+/home/dev/project/b.js:4: Unexpected 'debugger' statement (no-debugger)
+/home/dev/project/b.js:5: 'unused' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:6: 'y' is not defined (no-undef)
+/home/dev/project/b.js:8: 'c2' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:2: Unexpected var, use let or const instead (no-var)
+/home/dev/project/a.js:4: Expected '===' and instead saw '==' (eqeqeq)
+/home/dev/project/b.js:2: Unexpected var, use let or const instead (no-var)
+/home/dev/project/b.js:4: Expected '===' and instead saw '==' (eqeqeq)
+--- lint filter output
+✗ lint: 14 error(s), 4 warning(s)
+/home/dev/project/a.js:1: 'a' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:2: 'b' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:3: 'f' is defined but never used (no-unused-vars)
+/home/dev/project/a.js:4: Unexpected 'debugger' statement (no-debugger)
+/home/dev/project/a.js:5: 'unused' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:6: 'y' is not defined (no-undef)
+/home/dev/project/a.js:8: 'c2' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:1: 'a' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:2: 'b' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:3: 'f' is defined but never used (no-unused-vars)
+/home/dev/project/b.js:4: Unexpected 'debugger' statement (no-debugger)
+/home/dev/project/b.js:5: 'unused' is assigned a value but never used (no-unused-vars)
+/home/dev/project/b.js:6: 'y' is not defined (no-undef)
+/home/dev/project/b.js:8: 'c2' is assigned a value but never used (no-unused-vars)
+/home/dev/project/a.js:2: Unexpected var, use let or const instead (no-var)
+/home/dev/project/a.js:4: Expected '===' and instead saw '==' (eqeqeq)
+/home/dev/project/b.js:2: Unexpected var, use let or const instead (no-var)
+/home/dev/project/b.js:4: Expected '===' and instead saw '==' (eqeqeq)

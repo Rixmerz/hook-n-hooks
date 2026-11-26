@@ -1,0 +1,11 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: lint
+raw chars: 19
+compact chars: 12
+--- final output
+✓ lint clean
+--- lint filter output
+✓ lint clean

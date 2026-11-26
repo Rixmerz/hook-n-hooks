@@ -1,0 +1,11 @@
+npm notice run js@1.0.0 test
+npm notice run vitest run
+
+ RUN  v5.1.1 /home/dev/project
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:47:24
+   Duration  194ms (import 50%, transform 21%, worker 17%, tests 11%, environment 1%)
+

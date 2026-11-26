@@ -33,7 +33,93 @@ const CASES: &[(&str, &str, &str, i32)] = &[
     ("pnpm", "pass", "pnpm install", 0),
     ("pnpm", "fail", "pnpm install", 1),
     ("uv", "pass", "uv pip install requests", 0),
+    // v1.0: script wrappers (output signature decides the filter)
+    ("npm_test", "pass", "npm test", 0),
+    ("npm_run_lint", "fail", "npm run lint", 1),
+    ("make_test", "pass", "make test", 0),
+    // v1.0: linters
+    ("clippy", "fail", "cargo clippy", 101),
+    ("ruff", "fail", "ruff check .", 1),
+    ("ruff", "concise", "ruff check --output-format concise .", 1),
+    ("ruff", "pass", "ruff check .", 0),
+    ("mypy", "fail", "mypy a.py b.py", 1),
+    ("eslint", "fail", "npx eslint .", 1),
+    ("biome", "fail", "npx biome lint .", 1),
+    ("pyright", "fail", "pyright", 1),
+    ("golangci_lint", "fail", "golangci-lint run ./...", 1),
+    // v1.0: git
+    ("git_diff", "long", "git diff 1d914f7 f3a035f", 0),
+    ("git_show", "long", "git show f3a035f", 0),
+    ("git_log", "long", "git log", 0),
+    // v1.0: docker
+    ("docker_build", "pass", "docker build -t app .", 0),
+    ("docker_build", "fail", "docker build -t app .", 1),
+    (
+        "docker_build",
+        "buildkit_fail",
+        "docker buildx build -t api .",
+        1,
+    ),
+    ("docker_compose", "up", "docker compose up -d --build", 0),
+    // v1.0: other ecosystems
+    ("mvn", "test_pass", "mvn -B test", 0),
+    ("mvn", "test_fail", "mvn -B test", 1),
+    ("mvn", "compile_fail", "mvn -B compile", 1),
+    ("gradle", "fail", "./gradlew test", 1),
+    ("gradle", "compile_fail", "./gradlew build", 1),
+    ("dotnet_build", "fail", "dotnet build", 1),
+    ("dotnet_test", "fail", "dotnet test", 1),
+    ("rspec", "fail", "bundle exec rspec", 1),
+    ("phpunit", "fail", "vendor/bin/phpunit", 2),
+    ("mix_test", "fail", "mix test", 2),
+    (
+        "playwright",
+        "fail",
+        "npx playwright test --reporter=list",
+        1,
+    ),
+    // v1.0: listings
+    ("find", "long", "find .", 0),
+    ("ls_r", "long", "ls -R", 0),
+    ("du", "long", "du -h .", 0),
+    ("tree", "long", "tree -L 3", 0),
+    // v1.0: logs and network
+    ("docker_logs", "long", "docker logs worker", 0),
+    ("kubectl_logs", "long", "kubectl logs deploy/api", 0),
+    ("journalctl", "long", "journalctl -u api --no-pager", 0),
+    ("curl", "verbose", "curl -v https://example.com", 0),
 ];
+
+/// Fixtures written by hand, in the tool's exact format, because the tool
+/// was not installed where the fixtures were captured. Every other fixture
+/// is a real captured output (paths and author names anonymised).
+const CRAFTED: &[(&str, &str)] = &[
+    ("pyright", "fail"),
+    ("golangci_lint", "fail"),
+    ("docker_build", "buildkit_fail"),
+    ("docker_compose", "up"),
+    ("gradle", "fail"),
+    ("gradle", "compile_fail"),
+    ("dotnet_build", "fail"),
+    ("dotnet_test", "fail"),
+    ("rspec", "fail"),
+    ("phpunit", "fail"),
+    ("mix_test", "fail"),
+    ("playwright", "fail"),
+    ("tree", "long"),
+    ("kubectl_logs", "long"),
+    ("journalctl", "long"),
+];
+
+#[test]
+fn crafted_fixtures_are_listed_cases() {
+    for c in CRAFTED {
+        assert!(
+            CASES.iter().any(|x| (x.0, x.1) == *c),
+            "crafted fixture {c:?} has no entry in CASES"
+        );
+    }
+}
 
 fn fixture(tool: &str, case: &str) -> String {
     let p = format!(
@@ -62,7 +148,8 @@ fn snapshots() {
         let raw = fixture(tool, case);
         let argv: Vec<String> = cmdline.split_whitespace().map(String::from).collect();
         let cmd = Cmd::from_argv(&argv).unwrap();
-        let filter = filters::find(&cmd, &|_| true);
+        // Same choice as the hook; wrappers (`npm test`, `make test`) get `script`.
+        let filter = hk::hook::choose_filter(&cmd, None, &cfg).and_then(filters::by_name);
         assert!(
             filter.is_some(),
             "{tool}/{case}: no filter detects `{cmdline}`"

@@ -1,9 +1,11 @@
 //! Minimal, conservative parsing of Bash tool commands for the rewrite.
 //!
 //! We only rewrite *simple* commands: optional `cd DIR &&` prefix, optional
-//! `NAME=value` assignments, then words. Anything with pipes, redirections,
-//! lists, subshells, command substitution, globs we would mis-tokenise, or
-//! newlines is left untouched. The suffix after the assignments is passed to
+//! `NAME=value` assignments, then words. Two pipeline shapes are also
+//! recognised (see [`parse_pipeline`]): a trailing `2>&1`, and
+//! `cmd 2>&1 | tail|head -N` or `cmd 2>&1 | grep ...`. Anything else with
+//! pipes, redirections, lists, subshells, command substitution, or newlines
+//! is left untouched. The suffix after the assignments is passed to
 //! `hk run` verbatim, so Bash still does the real quoting and expansion; our
 //! tokenisation is only used to pick a filter.
 
@@ -46,6 +48,119 @@ pub fn parse(command: &str) -> Option<Simple<'_>> {
         rest: &body[rest_start..],
         words: words[n_env..].to_vec(),
     })
+}
+
+/// What follows the left command of a recognised pipeline.
+#[derive(Debug, PartialEq, Eq)]
+pub enum PipeKind {
+    /// `| tail -N` or `| head -N`: keeps a bounded slice of the output.
+    Slice,
+    /// `| grep ...`: selects lines.
+    Grep,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Pipe<'a> {
+    pub kind: PipeKind,
+    /// The right-hand stage, verbatim (`tail -20`).
+    pub stage: &'a str,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Pipeline<'a> {
+    /// The left command, without its `2>&1`.
+    pub left: Simple<'a>,
+    /// True when the left command merged stderr into stdout (`2>&1` or `|&`).
+    pub merged: bool,
+    pub pipe: Option<Pipe<'a>>,
+}
+
+/// Parse a simple command, optionally followed by `2>&1`, optionally piped
+/// into one `tail`/`head`/`grep` stage. A pipe is only accepted when stderr
+/// was merged into it, because `hk run` always merges the child's stderr:
+/// without `2>&1` the stage would suddenly see stderr too.
+pub fn parse_pipeline(command: &str) -> Option<Pipeline<'_>> {
+    let command = command.trim();
+    let (prefix, body) = split_cd_prefix(command);
+    let (left, right, pipe_amp) = match top_level_pipe(body) {
+        Some(i) if body[i + 1..].starts_with('&') => (&body[..i], Some(&body[i + 2..]), true),
+        Some(i) => (&body[..i], Some(&body[i + 1..]), false),
+        None => (body, None, false),
+    };
+    let left = left.trim_end();
+    let (left, merged) = match left.strip_suffix("2>&1") {
+        Some(l) if l.ends_with(char::is_whitespace) => (l.trim_end(), true),
+        _ => (left, false),
+    };
+    let mut simple = parse(left)?;
+    if !simple.prefix.is_empty() {
+        return None; // `cd a && cd b && ...`
+    }
+    simple.prefix = prefix;
+    let merged = merged || pipe_amp;
+    let pipe = match right {
+        None => None,
+        Some(r) => {
+            if !merged {
+                return None;
+            }
+            let stage = r.trim();
+            if stage.is_empty() || has_metachars(stage) {
+                return None;
+            }
+            let words = split_words(stage)?;
+            let kind = match words.first().map(String::as_str)? {
+                "tail" | "head" if is_slice_args(&words[1..]) => PipeKind::Slice,
+                "grep" | "egrep" | "fgrep" => PipeKind::Grep,
+                _ => return None,
+            };
+            Some(Pipe { kind, stage })
+        }
+    };
+    Some(Pipeline {
+        left: simple,
+        merged,
+        pipe,
+    })
+}
+
+/// `-20`, `-n 20`, `-n20`, `--lines=20`, `--lines 20`: a bounded slice of stdin.
+fn is_slice_args(args: &[String]) -> bool {
+    let num = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit());
+    match args {
+        [a] => {
+            a.strip_prefix("-n").is_some_and(num)
+                || a.strip_prefix('-').is_some_and(num)
+                || a.strip_prefix("--lines=").is_some_and(num)
+        }
+        [f, n] => (f == "-n" || f == "--lines") && num(n),
+        _ => false,
+    }
+}
+
+/// Byte index of the single top-level `|` (not `||`, not quoted). `None`
+/// when there is no pipe or more than one.
+fn top_level_pipe(s: &str) -> Option<usize> {
+    let b = s.as_bytes();
+    let mut found = None;
+    let (mut sq, mut dq) = (false, false);
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'\\' if !sq => i += 1,
+            b'\'' if !dq => sq = !sq,
+            b'"' if !sq => dq = !dq,
+            b'|' if !sq && !dq => {
+                if b.get(i + 1) == Some(&b'|') || found.is_some() {
+                    return None;
+                }
+                found = Some(i);
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    found
 }
 
 /// Split `cd some/dir && cmd` into (`cd some/dir && `, `cmd`).
@@ -221,6 +336,41 @@ mod tests {
             "cd a b && cargo test",
         ] {
             assert!(parse(c).is_none(), "{c}");
+        }
+    }
+
+    #[test]
+    fn parses_pipelines() {
+        let p = parse_pipeline("cargo test 2>&1").unwrap();
+        assert!(p.merged && p.pipe.is_none());
+        assert_eq!(p.left.rest, "cargo test");
+        let p = parse_pipeline("cd a && cargo test 2>&1 | tail -20").unwrap();
+        assert_eq!(p.left.prefix, "cd a && ");
+        assert_eq!(p.left.rest, "cargo test");
+        assert_eq!(
+            p.pipe,
+            Some(Pipe {
+                kind: PipeKind::Slice,
+                stage: "tail -20"
+            })
+        );
+        let p = parse_pipeline("pytest |& grep -E 'FAIL|ERR'").unwrap();
+        assert_eq!(p.pipe.unwrap().kind, PipeKind::Grep);
+        let p = parse_pipeline("cargo test 2>&1 | head -n 5").unwrap();
+        assert_eq!(p.pipe.unwrap().stage, "head -n 5");
+        for c in [
+            "cargo test | head -n 5", // stderr not merged into the pipe
+            "cargo test 2>&1 | tail -f",
+            "cargo test 2>&1 | tail -20 | head",
+            "cargo test 2>&1 | sort",
+            "cargo test 2>/dev/null",
+            "cargo test >out 2>&1",
+            "cargo test || true",
+            "cargo test 2>&1 | grep x > out",
+            "cargo test 2>&1; echo",
+            "cargo test 2>&1 && echo",
+        ] {
+            assert!(parse_pipeline(c).is_none(), "{c}");
         }
     }
 

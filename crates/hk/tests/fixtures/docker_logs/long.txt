@@ -1,0 +1,245 @@
+starting worker pid 1
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+ERROR: upstream timeout after 30s (attempt 40)
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+ERROR: upstream timeout after 30s (attempt 80)
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+ERROR: upstream timeout after 30s (attempt 120)
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+heartbeat ok
+GET /health 200 1ms
+shutting down

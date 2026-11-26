@@ -1,0 +1,57 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: listing
+raw chars: 4355
+compact chars: 910
+--- final output
+[hk] 116 entries, largest first
+[hk] heavy dirs: node_modules (114). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+71M	./node_modules
+71M	.
+27M	./node_modules/@typescript/typescript-linux-x64/lib
+27M	./node_modules/@typescript/typescript-linux-x64
+27M	./node_modules/@typescript
+21M	./node_modules/@rolldown/binding-linux-x64-gnu
+21M	./node_modules/@rolldown
+9.6M	./node_modules/lightningcss-linux-x64-gnu
+3.6M	./node_modules/typescript
+3.2M	./node_modules/typescript/dist
+3.1M	./node_modules/vitest
+2.9M	./node_modules/vitest/dist
+2.7M	./node_modules/vitest/dist/chunks
+2.4M	./node_modules/vite
+2.3M	./node_modules/vite/dist
+2.2M	./node_modules/vite/dist/node
+1.9M	./node_modules/vite/dist/node/chunks
+1.3M	./node_modules/typescript/dist/ast
+992K	./node_modules/typescript/dist/enums
+984K	./node_modules/rolldown
++96 more
+last line: 71M	.
+--- listing filter output
+[hk] 116 entries, largest first
+[hk] heavy dirs: node_modules (114). Exclude them, e.g. `find . -name node_modules -prune -o -print`, `tree -I node_modules`, `du --exclude=node_modules`
+71M	./node_modules
+71M	.
+27M	./node_modules/@typescript/typescript-linux-x64/lib
+27M	./node_modules/@typescript/typescript-linux-x64
+27M	./node_modules/@typescript
+21M	./node_modules/@rolldown/binding-linux-x64-gnu
+21M	./node_modules/@rolldown
+9.6M	./node_modules/lightningcss-linux-x64-gnu
+3.6M	./node_modules/typescript
+3.2M	./node_modules/typescript/dist
+3.1M	./node_modules/vitest
+2.9M	./node_modules/vitest/dist
+2.7M	./node_modules/vitest/dist/chunks
+2.4M	./node_modules/vite
+2.3M	./node_modules/vite/dist
+2.2M	./node_modules/vite/dist/node
+1.9M	./node_modules/vite/dist/node/chunks
+1.3M	./node_modules/typescript/dist/ast
+992K	./node_modules/typescript/dist/enums
+984K	./node_modules/rolldown
++96 more
+last line: 71M	.

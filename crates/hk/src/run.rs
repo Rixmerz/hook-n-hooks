@@ -20,6 +20,9 @@ const MAX_LOGS: usize = 200;
 pub struct RunArgs {
     pub filter: Option<String>,
     pub session: String,
+    /// The output is piped into `tail`/`head`: print the log path last as
+    /// well as first, so it survives whichever end the slice keeps.
+    pub piped: bool,
     pub argv: Vec<String>,
 }
 
@@ -65,9 +68,9 @@ pub fn run(args: RunArgs) -> i32 {
     let cfg = Config::load(&cwd);
     let filter = match &args.filter {
         Some(n) => filters::by_name(n),
-        None => {
-            Cmd::from_argv(&args.argv).and_then(|c| filters::find(&c, &|n| cfg.filter_enabled(n)))
-        }
+        None => Cmd::from_argv(&args.argv)
+            .and_then(|c| crate::hook::choose_filter(&c, Some(&cwd), &cfg))
+            .and_then(filters::by_name),
     };
     let log_path = new_log_path(filter.map_or(generic::NAME, |f| f.name()));
     let mut log = open_log(&log_path, &args.argv, &cwd);
@@ -92,6 +95,9 @@ pub fn run(args: RunArgs) -> i32 {
 
     let c = compact(filter, &raw, exit, &cfg);
     let _ = writeln!(stdout, "{}", c.text);
+    if args.piped && log.is_some() {
+        let _ = writeln!(stdout, "[hk] log: {}", log_path.display());
+    }
     let _ = stdout.flush();
 
     // The log is kept even when nothing was hidden: its path was already printed.

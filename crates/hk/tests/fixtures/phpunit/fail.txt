@@ -1,0 +1,28 @@
+PHPUnit 11.4.3 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.3.13
+Configuration: /home/dev/project/phpunit.xml
+
+..F.E.....                                                        10 / 10 (100%)
+
+Time: 00:00.031, Memory: 8.00 MB
+
+There was 1 error:
+
+1) Tests\PricingTest::testRoundHalfUp
+DivisionByZeroError: Division by zero
+
+/home/dev/project/src/Pricing.php:12
+/home/dev/project/tests/PricingTest.php:9
+
+--
+
+There was 1 failure:
+
+1) Tests\CartTest::testTotalAppliesDiscount
+Failed asserting that 100 matches expected 90.
+
+/home/dev/project/tests/CartTest.php:21
+
+FAILURES!
+Tests: 10, Assertions: 14, Errors: 1, Failures: 1.

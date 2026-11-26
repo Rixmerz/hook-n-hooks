@@ -15,6 +15,12 @@ impl Filter for CargoTest {
         cmd.program == "cargo" && matches!(cmd.subcommand(), Some("test" | "t"))
     }
 
+    fn sniff(&self, output: &str) -> bool {
+        output
+            .lines()
+            .any(|l| l.trim_start().starts_with("test result: "))
+    }
+
     fn filter(&self, output: &str, exit: i32, limits: &Limits) -> Option<String> {
         let (mut passed, mut failed, mut ignored, mut seen) = (0, 0, 0, false);
         for line in output.lines() {

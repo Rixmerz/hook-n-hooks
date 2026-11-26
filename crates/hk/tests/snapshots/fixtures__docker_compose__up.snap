@@ -1,0 +1,31 @@
+---
+source: crates/hk/tests/fixtures.rs
+expression: report
+---
+used: docker
+raw chars: 1438
+compact chars: 382
+--- final output
+✓ docker: 10 build step(s) done
+writing image sha256:5d2e8f1a0b9c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e done
+naming to docker.io/library/shop-api done
+api  Built
+Network shop_default  Created
+Volume "shop_pgdata"  Created
+Container shop-db-1  Created
+Container shop-api-1  Created
+Container shop-db-1  Started
+Container shop-db-1  Healthy
+Container shop-api-1  Started
+--- docker filter output
+✓ docker: 10 build step(s) done
+writing image sha256:5d2e8f1a0b9c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e done
+naming to docker.io/library/shop-api done
+api  Built
+Network shop_default  Created
+Volume "shop_pgdata"  Created
+Container shop-db-1  Created
+Container shop-api-1  Created
+Container shop-db-1  Started
+Container shop-db-1  Healthy
+Container shop-api-1  Started
