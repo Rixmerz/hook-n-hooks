@@ -14,8 +14,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// How many logs to keep; older ones are pruned on each run.
-const MAX_LOGS: usize = 200;
+/// Logs older than this are pruned on each run.
+const MAX_AGE_SECS: u64 = 7 * 24 * 3600;
+/// Above this many logs, the oldest are pruned, but never one written in the
+/// last hour or by the running session.
+const MAX_LOGS: usize = 1000;
+const MIN_AGE_SECS: u64 = 3600;
 
 pub struct RunArgs {
     pub filter: Option<String>,
@@ -23,6 +27,9 @@ pub struct RunArgs {
     /// The output is piped into `tail`/`head`: print the log path last as
     /// well as first, so it survives whichever end the slice keeps.
     pub piped: bool,
+    /// Capture stdout only and let stderr through untouched (for a pipe
+    /// without `2>&1`, where the next stage never saw stderr).
+    pub stdout_only: bool,
     pub argv: Vec<String>,
 }
 
@@ -64,15 +71,25 @@ pub fn run(args: RunArgs) -> i32 {
         eprintln!("hk run: missing command (usage: hk run [--filter NAME] [--session ID] -- <cmd> [args...])");
         return 2;
     }
+    let started = std::time::Instant::now();
     let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let cfg = Config::load(&cwd);
+    let mut cfg = Config::load(&cwd);
+    let parsed = Cmd::from_argv(&args.argv);
+    if let Some(n) = parsed
+        .as_ref()
+        .and_then(|c| cfg.limits.commands.get(&c.program))
+    {
+        cfg.limits.generic_max_lines = *n;
+    }
     let filter = match &args.filter {
         Some(n) => filters::by_name(n),
-        None => Cmd::from_argv(&args.argv)
-            .and_then(|c| crate::hook::choose_filter(&c, Some(&cwd), &cfg))
+        None => parsed
+            .as_ref()
+            .and_then(|c| crate::hook::choose_filter(c, Some(&cwd), &cfg))
             .and_then(filters::by_name),
     };
-    let log_path = new_log_path(filter.map_or(generic::NAME, |f| f.name()));
+    let filter_name = filter.map_or(generic::NAME, |f| f.name());
+    let log_path = new_log_path(&args.session, filter_name);
     let mut log = open_log(&log_path, &args.argv, &cwd);
 
     let mut stdout = std::io::stdout();
@@ -81,7 +98,7 @@ pub fn run(args: RunArgs) -> i32 {
         let _ = stdout.flush();
     }
 
-    let (raw, status) = match execute(&args.argv, log.as_mut()) {
+    let (raw, status) = match execute(&args.argv, log.as_mut(), !args.stdout_only) {
         Ok(v) => v,
         Err(e) => {
             let _ = writeln!(stdout, "hk: failed to run `{}`: {e}", args.argv[0]);
@@ -94,22 +111,40 @@ pub fn run(args: RunArgs) -> i32 {
     }
 
     let c = compact(filter, &raw, exit, &cfg);
+    let project = crate::paths::project_root(&cwd);
+    let diff = crate::history::compare(&project, &args.argv, &c.text, filter_name);
     let _ = writeln!(stdout, "{}", c.text);
-    if args.piped && log.is_some() {
-        let _ = writeln!(stdout, "[hk] log: {}", log_path.display());
+    if let Some(d) = &diff {
+        let _ = writeln!(stdout, "{d}");
     }
+    let secs = started.elapsed().as_secs_f64();
+    let omitted = raw.lines().count().saturating_sub(c.text.lines().count());
+    // One fixed, parseable line: scripts can read it, and it shows the time.
+    let _ = write!(
+        stdout,
+        "[hk] filter={} exit={exit} time={secs:.1}s omitted={omitted}",
+        c.filter
+    );
+    if args.piped && log.is_some() {
+        let _ = write!(stdout, " log={}", log_path.display());
+    }
+    let _ = writeln!(stdout);
     let _ = stdout.flush();
 
     // The log is kept even when nothing was hidden: its path was already printed.
     let rec = Record {
         ts: now(),
-        session: args.session,
+        session: args.session.clone(),
         filter: c.filter.to_string(),
         raw: raw.chars().count(),
-        out: c.text.chars().count() + log_path.as_os_str().len() + 16,
+        out: c.text.chars().count() + log_path.as_os_str().len() + 64,
+        project: project.display().to_string(),
+        exit: Some(exit),
+        ms: Some((secs * 1000.0) as u64),
+        kind: String::new(),
     };
     let _ = stats::append(&crate::paths::stats_file(), &rec);
-    prune_logs(&crate::paths::logs_dir());
+    prune_logs(&crate::paths::logs_dir(), &args.session);
     exit
 }
 
@@ -118,11 +153,13 @@ pub fn run(args: RunArgs) -> i32 {
 fn execute(
     argv: &[String],
     mut log: Option<&mut std::fs::File>,
+    merge: bool,
 ) -> std::io::Result<(String, ExitStatus)> {
     let (mut reader, writer) = std::io::pipe()?;
-    let mut child = spawn(argv, &writer)?;
+    let mut child = spawn(argv, &writer, merge)?;
     drop(writer);
     let mut raw = Vec::new();
+    let mut pending: Vec<u8> = Vec::new();
     let mut buf = [0u8; 16 * 1024];
     loop {
         let n = match reader.read(&mut buf) {
@@ -132,21 +169,51 @@ fn execute(
             Err(_) => break,
         };
         if let Some(f) = log.as_deref_mut() {
-            let _ = f.write_all(&buf[..n]);
+            // Masked line by line, so a secret split across reads is still seen.
+            pending.extend_from_slice(&buf[..n]);
+            if let Some(nl) = pending.iter().rposition(|b| *b == b'\n') {
+                let done: Vec<u8> = pending.drain(..=nl).collect();
+                let _ = f.write_all(mask(&done).as_bytes());
+            }
         }
         raw.extend_from_slice(&buf[..n]);
+    }
+    if let Some(f) = log {
+        let _ = f.write_all(mask(&pending).as_bytes());
     }
     let status = child.wait()?;
     Ok((String::from_utf8_lossy(&raw).into_owned(), status))
 }
 
-fn spawn(argv: &[String], writer: &std::io::PipeWriter) -> std::io::Result<std::process::Child> {
+fn mask(bytes: &[u8]) -> String {
+    let text = String::from_utf8_lossy(bytes);
+    let mut out = String::with_capacity(text.len());
+    for l in text.split_inclusive('\n') {
+        let (body, nl) = match l.strip_suffix('\n') {
+            Some(b) => (b, "\n"),
+            None => (l, ""),
+        };
+        out.push_str(&crate::redact::line(body));
+        out.push_str(nl);
+    }
+    out
+}
+
+fn spawn(
+    argv: &[String],
+    writer: &std::io::PipeWriter,
+    merge: bool,
+) -> std::io::Result<std::process::Child> {
     let build = |prog: &str, args: &[String]| -> std::io::Result<Command> {
         let mut c = Command::new(prog);
         c.args(args)
             .stdin(Stdio::inherit())
-            .stdout(writer.try_clone()?)
-            .stderr(writer.try_clone()?);
+            .stdout(writer.try_clone()?);
+        if merge {
+            c.stderr(writer.try_clone()?);
+        } else {
+            c.stderr(Stdio::inherit());
+        }
         Ok(c)
     };
     match build(&argv[0], &argv[1..])?.spawn() {
@@ -193,40 +260,74 @@ fn now() -> u64 {
         .unwrap_or(0)
 }
 
-fn new_log_path(filter: &str) -> PathBuf {
+/// `<nanos>-<pid>-<session>-<filter>.log`. The session and filter are
+/// sanitised to `[A-Za-z0-9_-]`, so `-` splits are only used for the prefix.
+fn new_log_path(session: &str, filter: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    crate::paths::logs_dir().join(format!("{nanos}-{}-{filter}.log", std::process::id()))
+    let session: String = session
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+        .take(64)
+        .collect();
+    crate::paths::logs_dir().join(format!(
+        "{nanos}-{}-{session}-{filter}.log",
+        std::process::id()
+    ))
 }
 
 fn open_log(path: &Path, argv: &[String], cwd: &Path) -> Option<std::fs::File> {
-    std::fs::create_dir_all(path.parent()?).ok()?;
-    let mut f = std::fs::File::create(path).ok()?;
+    crate::paths::create_private_dir(path.parent()?).ok()?;
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut f = opts.open(path).ok()?;
     let _ = writeln!(
         f,
         "[hk] cwd: {}\n[hk] command: {}\n",
         cwd.display(),
-        argv.join(" ")
+        crate::redact::line(&argv.join(" "))
     );
     Some(f)
 }
 
-fn prune_logs(dir: &Path) {
+/// Seconds since the epoch encoded in a log name, if any.
+pub fn log_time(p: &Path) -> Option<u64> {
+    let name = p.file_name()?.to_str()?;
+    let nanos: u128 = name.split('-').next()?.parse().ok()?;
+    Some((nanos / 1_000_000_000) as u64)
+}
+
+fn prune_logs(dir: &Path, session: &str) {
     let Ok(rd) = std::fs::read_dir(dir) else {
         return;
     };
+    let now = now();
     let mut names: Vec<PathBuf> = rd
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().is_some_and(|x| x == "log"))
         .collect();
-    if names.len() <= MAX_LOGS {
-        return;
-    }
     // File names start with a nanosecond timestamp, so lexical order is age order.
     names.sort();
-    for p in &names[..names.len() - MAX_LOGS] {
-        let _ = std::fs::remove_file(p);
+    let tag = format!("-{session}-");
+    let mut left = names.len();
+    for p in &names {
+        let age = log_time(p).map_or(u64::MAX, |t| now.saturating_sub(t));
+        let mine = p
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.contains(&tag));
+        let expired = age > MAX_AGE_SECS;
+        let over = left > MAX_LOGS && age > MIN_AGE_SECS && !mine;
+        if expired || over {
+            let _ = std::fs::remove_file(p);
+            left -= 1;
+        }
     }
 }

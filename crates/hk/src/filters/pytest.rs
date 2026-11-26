@@ -39,9 +39,12 @@ impl Filter for Pytest {
             + count_before(&summary, " error").unwrap_or(0);
         if failed == 0 && exit == 0 {
             let counts = summary.split(" in ").next().unwrap_or(&summary);
-            return Some(format!("✓ {counts}"));
+            let mut out = vec![format!("✓ {counts}")];
+            out.extend(crate::text::coverage_lines(output));
+            return Some(out.join("\n"));
         }
         let mut out = vec![format!("✗ {summary}")];
+        out.extend(crate::text::coverage_lines(output));
         push_capped(
             &mut out,
             failures(output, limits.stack_lines),

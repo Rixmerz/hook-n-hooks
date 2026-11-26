@@ -37,9 +37,21 @@ The Bash filters:
 | `git` | `git diff`, `git show`, unbounded `git log` | unchanged if short | long: stat summary + first diff lines, or the first commits |
 | `docker` | `docker build`, `docker buildx build`, `docker compose build`, `docker compose up -d` | the result (image, tags, containers) | the failing step, the tail of its output, the error lines |
 | `logs` | `docker logs`, `docker compose logs`, `kubectl logs`, `journalctl`, `curl -v` | unchanged if short | repeated lines collapsed (`(x120 similar)`), then head/tail; curl's TLS noise dropped |
+| `angular` | `ng build`, `ng test --watch=false` | `✓ ng build ok: N warning(s); Initial total …` or `✓ Executed N of N SUCCESS` | `file:line:col: TS…/NG…` errors, budget warnings first, failing Karma specs |
+| `json` | `curl … https://…`, `gh api`, `kubectl get -o json`, `aws`/`gcloud`/`az` with JSON output | unchanged if short | the same JSON shape: every key, 3 items per array with the total, long strings cut |
+| `table` | `psql -c`, `mysql -e`, `sqlite3 db query`, `kubectl get`, `docker ps`/`images` | unchanged if short | header, first rows, row count |
 | `listing` | `find`, `ls -R`, `tree`, `du` | unchanged if short | counts per directory, first entries, heavy-dir hint; `du`: largest first |
 | `script` | `npm/pnpm/yarn/bun run <s>`, `npm test`, `make`, `just`, `task` when the script could not be resolved | picked from the output signature | same |
-| `generic` | fallback, or commands listed in `rewrite.generic_commands` | output unchanged if short | head 30 + tail 30 lines |
+| `generic` | fallback, or commands listed in `rewrite.generic_commands` or `[limits.commands]` | output unchanged if short | head 30 + tail 30 lines |
+
+Test filters keep the coverage totals (the istanbul `All files` row, Jest's
+`text-summary`, coverage.py's `TOTAL`) even when every test passes. Build
+filters keep the warning count and the warnings. When the same test command
+runs again in the same project, a `[hk] vs last run: 1 new, 2 fixed` line lists
+the failures that appeared and the ones that went away.
+
+`hide exec NAME -- 'npm test'` is recognised by its inner command, and the
+whole `hide` call is wrapped, so the log only ever holds hide's masked output.
 
 ANSI colours are always stripped. If a filter does not recognise an output, the
 generic filter is used instead. A "summary" that would be longer than the
@@ -61,21 +73,35 @@ used. Otherwise, for names that terminate (`test`, `build`, `lint`, `check`,
 `ci`, `typecheck`...), the `script` filter recognises the output by its
 signature. Anything else, including `npm run dev`, is left alone.
 
-### Pipes
+### Lists and pipes
 
-Three shapes are rewritten. Everything else with a pipe, a redirection, `;` or
-`&&` is left alone (except a leading `cd DIR &&`).
+A command line is split on `&&`, `||`, `;` and newlines, and each command in
+the list is rewritten on its own; `cd DIR` parts are followed, so
+`cd web && npm test && npm run build` wraps both npm commands with the filters
+of `web/package.json`. Heredocs, background `&`, comments, subshells and
+`$(...)` are never touched.
 
 | Command | Becomes |
 | --- | --- |
 | `cargo test 2>&1` | `hk run -- cargo test 2>&1` |
 | `cargo test 2>&1 \| tail -20` | `hk run --piped -- cargo test 2>&1 \| tail -20` (the log path is printed first and last, so the slice keeps it) |
+| `cargo test \| tail -20` | `hk run --piped --stdout-only -- cargo test \| tail -20` (stderr goes straight to the terminal, as before; tail still sees stdout only) |
 | `cargo test 2>&1 \| grep FAIL` | `cargo test 2>&1 \| hk run -- grep FAIL` (grep still sees the raw output; hk caps what grep prints) |
+| `cargo build && cargo test; ls` | `hk run -- cargo build && hk run -- cargo test; ls` |
 
 The pipe stays in the shell, so the exit status is exactly what Bash would have
-reported. A pipe without `2>&1` is left alone: `hk run` merges stderr, which
-would change what `tail` or `grep` sees. Every stage is checked against your
-permission rules.
+reported. Every command and every stage is checked against your permission
+rules.
+
+To get the raw output of one command, prefix it with `HK_RAW=1` or end the
+line with `# hk:raw`. `hk explain "<command line>"` tells you which filter
+would wrap a command, or why it would not.
+
+Every wrapped run ends with one parseable line:
+
+```
+[hk] filter=cargo_test exit=101 time=12.4s omitted=340
+```
 
 ### Before and after
 
@@ -104,7 +130,7 @@ test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; 
 becomes
 
 ```
-[hk] log: ~/.local/share/hk/logs/1795487589516338550-1540218-cargo_test.log
+[hk] log: ~/Library/Application Support/hk/logs/1795487589516338550-1540218-abc123-cargo_test.log
 ✗ 2 failed, 2 passed
 FAIL tests::fails_one
   panicked at src/lib.rs:7:30:
@@ -114,7 +140,12 @@ FAIL tests::fails_one
 FAIL tests::panics
   panicked at src/lib.rs:8:62:
   index out of bounds: the len is 0 but the index is 3
+[hk] filter=cargo_test exit=101 time=3.2s omitted=38
 ```
+
+(The log path shown is macOS; see [Data and logs](#data-and-logs) for the
+other systems. You rarely need it: `hk log last --grep panicked` prints the
+matching lines of the newest log.)
 
 More examples from the fixtures:
 
@@ -186,10 +217,45 @@ against your own rules in `~/.claude/settings.json`, `.claude/settings.json` and
 Rules you pass on the command line (`--allowedTools`) and managed settings are
 not visible to hooks.
 
+## MCP results
+
+Large MCP tool results (over 8,000 characters of JSON by default) are
+shortened in a PostToolUse hook with `updatedToolOutput`. The result keeps its
+shape, as Claude Code requires: only long strings change. A string that holds
+JSON becomes the same JSON with 3 items per array and the totals; other text
+keeps its head and tail. The full result is saved to a log whose path is the
+first line of the shortened text. Turn it off, or skip some tools, in
+`[mcp]`.
+
+## Formatting
+
+After `Edit`, `Write` and `MultiEdit` the touched file is formatted with the
+formatter the project already has: `rustfmt`, `gofmt`, `ruff format`, `biome
+format`, or `prettierd`/`prettier` (run from the project root, so
+`.prettierignore` applies).
+
+- **Only formatters by default.** Fixers (`eslint --fix`, `ruff check --fix`,
+  `biome check --write`) can change behaviour; turn them on with
+  `format.fix = true`.
+- **Only clean files.** If formatting would change lines outside your edit (the
+  file was not formatted before), the edit is kept as written and hk says so,
+  so the pull request diff stays yours. `format.only_clean = false` formats the
+  whole file and reports how many lines outside the edit changed.
+- **Never touched:** lockfiles, `migrations/`, `fixtures/`, `__snapshots__/`,
+  `vendor/`, generated and minified files, plus `format.exclude`.
+- **Once at the end.** `format.when = "stop"` formats every touched file when
+  Claude stops, instead of after each edit, so a file never changes between two
+  edits.
+
 ## Configuration
 
-`hk` works without configuration. To change it, add an optional
-`.claude/hk.toml` to the project. Every key is optional:
+`hk` works without configuration. Settings come from two optional files, the
+project's winning key by key:
+
+- user: `~/.config/hk/hk.toml` (or `$XDG_CONFIG_HOME/hk/hk.toml`, or `$HK_CONFIG`)
+- project: `.claude/hk.toml` in the project or its closest ancestor that has one
+
+Every key is optional:
 
 ```toml
 [filters]          # turn individual filters off
@@ -203,17 +269,46 @@ tail = 30
 max_errors = 20          # diagnostics/failures listed before "+N more"
 stack_lines = 5          # context lines kept per failing test
 
+[limits.commands]        # per-program cap; these are also wrapped
+openspec = 40
+
 [rewrite]
 enabled = true
 generic_commands = ["bazel"]   # also wrap these with the generic filter
-unapproved = "skip"                   # or "rewrite"; see Permissions
+unapproved = "skip"            # or "rewrite"; see Permissions
 
 [format]
 enabled = true
+fix = false              # also run fixers
+only_clean = true        # never reformat lines outside the edit
+when = "edit"            # or "stop"
+exclude = ["docs/"]
+
+[mcp]
+enabled = true
+max_chars = 8000
+skip = ["mcp__myserver__*"]
+
+[misses]                 # record large outputs hk did not wrap
+enabled = true
+min_chars = 2000
 
 [session_start]
 enabled = true
 ```
+
+## Repo map
+
+At session start hk injects: the git branch, how far it is ahead of or behind
+its upstream, uncommitted files and the last 3 commits (and, in a linked
+worktree, which checkout it belongs to); the stack and its build/test/lint
+commands; what CI really runs (`bitbucket-pipelines.yml`, `.gitlab-ci.yml`,
+GitHub workflows); and a 2-level tree. Dot directories that the root
+`.gitignore` lists (tool state) and SQLite or lock side files are left out,
+and `src/`, `tests/` and friends list up to 40 entries. A folder that only
+groups repositories gets one line per repository instead: branch, stack, test
+and build commands. After a compaction only the short version (git, stack, CI)
+is injected.
 
 ## Stats
 
@@ -226,19 +321,60 @@ cargo_test            1          145
 pytest                1           72
 ```
 
-Each wrapped run appends one line to `stats.jsonl` in the data directory:
-`~/.local/share/hk` on Linux, `~/Library/Application Support/hk` on macOS, and
-`%LOCALAPPDATA%\hk` on Windows. The estimate is characters / 4. Raw output is
-capped at 30,000 characters, the length at which Claude Code truncates Bash
-output itself. The printed log line counts as output. Logs are pruned to the
-latest 200.
+`hk stats` breaks the savings down per filter, project and session;
+`--project NAME`, `--session ID` and `--json` narrow or reshape it. MCP
+results count under `mcp`.
+
+`hk misses` shows the other side: large Bash outputs hk did *not* wrap, grouped
+by reason (`no-filter`, `shape`, `unparsable`, `permissions`, `watch`) and
+program, so the next filter is chosen from data.
+
+The estimate is characters / 4. Raw output is capped at 30,000 characters, the
+length at which Claude Code truncates Bash output itself. The printed log and
+status lines count as output.
+
+## Data and logs
+
+Logs, stats and the error log live in the data directory: `~/.local/share/hk`
+(or `$XDG_DATA_HOME/hk`) on Linux, `~/Library/Application Support/hk` on macOS,
+`%LOCALAPPDATA%\hk` on Windows, or `$HK_DATA_DIR`.
+
+- Directories are created `0700` and files `0600`.
+- Known secret shapes are masked before a line is written: `Bearer`/`Basic`
+  credentials, `user:password@` in URLs, provider tokens (`ghp_`, `glpat-`,
+  `sk-`, `xox?-`, `AKIA`, `AIza`, `ovk_`...), `PASSWORD=`/`api_key:`-style
+  values and private keys.
+- Logs are deleted after 7 days. Above 1,000 logs the oldest go first, but
+  never one from the running session or from the last hour.
+
+```
+hk log last [--session ID] [--grep TEXT] [--lines A:B]   # part of the newest log
+hk log list                                               # the 20 newest logs
+hk log path                                               # the newest log's path
+hk log <file name or path> [--grep TEXT] [--lines A:B]
+```
+
+## Troubleshooting
+
+Every hook fails open: a problem in hk never blocks a tool call. Problems are
+recorded instead, and the next session start says so in one line.
+
+```
+hk doctor     # binary and version, config files, data directory permissions,
+              # formatters found here, and the latest hook errors
+```
+
+When the plugin cache holds a newer hook-n-hooks than the binary running in a
+session, the session start says to restart Claude Code.
 
 ## Other commands
 
 ```
 hk run [--filter NAME] -- <cmd> [args...]   # use a filter by hand
+hk explain "<command line>"                 # which filter, or why not
 hk filters                                  # list filters
 hk map [DIR]                                # print the SessionStart repo map
+hk capture <log> <tool> <case>              # log -> anonymised test fixture
 ```
 
 ## Documentation

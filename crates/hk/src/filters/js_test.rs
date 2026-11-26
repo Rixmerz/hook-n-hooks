@@ -40,10 +40,14 @@ impl Filter for JsTest {
         } else {
             String::new()
         };
+        let coverage = crate::text::coverage_lines(output);
         if failed == 0 && exit == 0 {
-            return Some(format!("✓ {passed} passed{skip}"));
+            let mut out = vec![format!("✓ {passed} passed{skip}")];
+            out.extend(coverage);
+            return Some(out.join("\n"));
         }
         let mut out = vec![format!("✗ {failed} failed, {passed} passed{skip}")];
+        out.extend(coverage);
         push_capped(
             &mut out,
             failures(output, limits.stack_lines),
@@ -105,4 +109,29 @@ fn render((name, body): (String, Vec<String>)) -> String {
         s.push_str(&b);
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_coverage_totals() {
+        let out = "\
+Tests:       3 passed, 3 total
+----------|---------|----------|---------|---------|
+File      | % Stmts | % Branch | % Funcs | % Lines |
+----------|---------|----------|---------|---------|
+All files |   85.71 |       50 |     100 |   85.71 |
+ a.ts     |   85.71 |       50 |     100 |   85.71 |
+----------|---------|----------|---------|---------|
+";
+        let r = JsTest.filter(out, 0, &Limits::default()).unwrap();
+        assert!(
+            r.starts_with("✓ 3 passed\ncoverage: File      | % Stmts"),
+            "{r}"
+        );
+        assert!(r.contains("coverage: All files |   85.71"));
+        assert!(!r.contains("a.ts"));
+    }
 }

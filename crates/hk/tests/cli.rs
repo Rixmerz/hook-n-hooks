@@ -68,6 +68,7 @@ fn run_reports_missing_program() {
 fn hook(event: &str, input: &str) -> (i32, String) {
     let mut child = Command::new(HK)
         .args(["hook", event])
+        .env("HK_DATA_DIR", data_dir(&format!("hook-{event}")))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -115,4 +116,128 @@ fn session_start_prints_repo_map() {
     assert!(out.starts_with("[hk] repo map"), "{out}");
     assert!(out.contains("stack: rust"), "{out}");
     assert!(out.contains("src/"), "{out}");
+}
+
+#[test]
+fn stdout_only_lets_stderr_through() {
+    let dir = data_dir("stdout-only");
+    let out = Command::new(HK)
+        .args([
+            "run",
+            "--stdout-only",
+            "--piped",
+            "--",
+            HK,
+            "__emit",
+            "0",
+            "hi",
+        ])
+        .env("HK_DATA_DIR", &dir)
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(!stdout.contains("(stderr)"), "{stdout}");
+    assert!(stderr.contains("hi (stderr)"), "{stderr}");
+    let last = stdout.lines().last().unwrap();
+    assert!(
+        last.starts_with("[hk] filter=") && last.contains(" exit=0 ") && last.contains(" log="),
+        "{last}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn logs_are_private_and_masked() {
+    let dir = data_dir("private");
+    let out = Command::new(HK)
+        .args([
+            "run",
+            "--session",
+            "s9",
+            "--",
+            HK,
+            "__emit",
+            "0",
+            "Authorization: Bearer abcdefghijklmnopqrstuv",
+        ])
+        .env("HK_DATA_DIR", &dir)
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let log = stdout
+        .lines()
+        .next()
+        .unwrap()
+        .trim_start_matches("[hk] log: ")
+        .to_string();
+    assert!(log.contains("-s9-"), "{log}");
+    let text = std::fs::read_to_string(&log).unwrap();
+    assert!(!text.contains("abcdefghijklmnop"), "{text}");
+    assert!(text.contains("Bearer ***"));
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&log).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
+    // `hk log last --grep` finds it without opening the file by hand.
+    let shown = Command::new(HK)
+        .args(["log", "last", "--session", "s9", "--grep", "Bearer"])
+        .env("HK_DATA_DIR", &dir)
+        .output()
+        .unwrap();
+    let shown = String::from_utf8_lossy(&shown.stdout);
+    assert!(
+        shown.contains("     4  Authorization: Bearer ***"),
+        "{shown}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn explain_says_why() {
+    let ex = |c: &str| {
+        let o = Command::new(HK)
+            .args(["explain", c])
+            .env("HK_DATA_DIR", data_dir("explain"))
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&o.stdout).into_owned()
+    };
+    assert!(ex("cargo test && cargo build").contains("cargo_test, build"));
+    assert!(ex("cat <<EOF\nx\nEOF").contains("heredoc"));
+    assert!(ex("ls -la > out.txt").contains("redirection"));
+    assert!(ex("openspec validate").contains("no filter for `openspec`"));
+}
+
+#[test]
+fn hook_handles_chains_and_stdout_only_pipes() {
+    let input = r#"{"session_id":"s","cwd":"/tmp","permission_mode":"auto","tool_name":"Bash","tool_input":{"command":"cargo build && cargo test | tail -40"}}"#;
+    let mut child = Command::new(HK)
+        .args(["hook", "pre-tool-use"])
+        .env("HK_DATA_DIR", data_dir("hook-chain"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(input.as_bytes())
+        .unwrap();
+    let out = child.wait_with_output().unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let cmd = v["hookSpecificOutput"]["updatedInput"]["command"]
+        .as_str()
+        .unwrap();
+    assert!(
+        cmd.contains("--filter build --session s -- cargo build && "),
+        "{cmd}"
+    );
+    assert!(
+        cmd.ends_with("--piped --stdout-only -- cargo test | tail -40"),
+        "{cmd}"
+    );
 }

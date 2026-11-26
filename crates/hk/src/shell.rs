@@ -1,7 +1,8 @@
 //! Minimal, conservative parsing of Bash tool commands for the rewrite.
 //!
-//! We only rewrite *simple* commands: optional `cd DIR &&` prefix, optional
-//! `NAME=value` assignments, then words. Two pipeline shapes are also
+//! A command line is first split into its `&&`/`||`/`;` list
+//! ([`split_chain`]); each part is then rewritten on its own when it is a
+//! *simple* command: optional `NAME=value` assignments, then words. Two pipeline shapes are also
 //! recognised (see [`parse_pipeline`]): a trailing `2>&1`, and
 //! `cmd 2>&1 | tail|head -N` or `cmd 2>&1 | grep ...`. Anything else with
 //! pipes, redirections, lists, subshells, command substitution, or newlines
@@ -76,9 +77,9 @@ pub struct Pipeline<'a> {
 }
 
 /// Parse a simple command, optionally followed by `2>&1`, optionally piped
-/// into one `tail`/`head`/`grep` stage. A pipe is only accepted when stderr
-/// was merged into it, because `hk run` always merges the child's stderr:
-/// without `2>&1` the stage would suddenly see stderr too.
+/// into one `tail`/`head`/`grep` stage. When stderr was not merged into the
+/// pipe, the caller must run `hk run --stdout-only` so the stage still sees
+/// stdout alone.
 pub fn parse_pipeline(command: &str) -> Option<Pipeline<'_>> {
     let command = command.trim();
     let (prefix, body) = split_cd_prefix(command);
@@ -101,9 +102,6 @@ pub fn parse_pipeline(command: &str) -> Option<Pipeline<'_>> {
     let pipe = match right {
         None => None,
         Some(r) => {
-            if !merged {
-                return None;
-            }
             let stage = r.trim();
             if stage.is_empty() || has_metachars(stage) {
                 return None;
@@ -163,6 +161,103 @@ fn top_level_pipe(s: &str) -> Option<usize> {
     found
 }
 
+/// One command of a `&&` / `||` / `;` / newline list.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Part<'a> {
+    /// The command, verbatim, including surrounding whitespace.
+    pub text: &'a str,
+    /// The separator that follows it (`&&`, `||`, `;`, a newline), or empty.
+    pub sep: &'a str,
+}
+
+/// Split a command line into its top-level list. Separators inside quotes,
+/// `$(...)`, subshells and backticks are ignored. Returns `None` for shapes
+/// we refuse to touch at all: heredocs, background `&`, comments, `case`
+/// arms and unbalanced quotes or parentheses.
+pub fn split_chain(s: &str) -> Option<Vec<Part<'_>>> {
+    let b = s.as_bytes();
+    let (mut sq, mut dq, mut bt) = (false, false, false);
+    let mut depth = 0i32;
+    let mut parts = Vec::new();
+    let mut start = 0;
+    let mut i = 0;
+    while i < b.len() {
+        let c = b[i];
+        if sq {
+            if c == b'\'' {
+                sq = false;
+            }
+            i += 1;
+            continue;
+        }
+        let sep_len = match c {
+            b'\\' => {
+                i += 2;
+                continue;
+            }
+            b'"' => {
+                dq = !dq;
+                0
+            }
+            _ if dq => 0,
+            b'\'' => {
+                sq = true;
+                0
+            }
+            b'`' => {
+                bt = !bt;
+                0
+            }
+            _ if bt => 0,
+            b'(' => {
+                depth += 1;
+                0
+            }
+            b')' => {
+                depth -= 1;
+                if depth < 0 {
+                    return None;
+                }
+                0
+            }
+            b'<' if b.get(i + 1) == Some(&b'<') => return None,
+            b'#' if i == 0 || b[i - 1].is_ascii_whitespace() => return None,
+            _ if depth > 0 => 0,
+            b'&' if b.get(i + 1) == Some(&b'&') => 2,
+            b'&' => {
+                let prev = i.checked_sub(1).map(|j| b[j]);
+                // `2>&1`, `&>file`, `|&`: redirections, not separators.
+                if !matches!(prev, Some(b'>' | b'|')) && b.get(i + 1) != Some(&b'>') {
+                    return None; // background job
+                }
+                0
+            }
+            b'|' if b.get(i + 1) == Some(&b'|') => 2,
+            b';' if b.get(i + 1) == Some(&b';') => return None,
+            b';' | b'\n' => 1,
+            _ => 0,
+        };
+        if sep_len > 0 {
+            parts.push(Part {
+                text: &s[start..i],
+                sep: &s[i..i + sep_len],
+            });
+            i += sep_len;
+            start = i;
+        } else {
+            i += 1;
+        }
+    }
+    if sq || dq || bt || depth != 0 {
+        return None;
+    }
+    parts.push(Part {
+        text: &s[start..],
+        sep: "",
+    });
+    Some(parts)
+}
+
 /// Split `cd some/dir && cmd` into (`cd some/dir && `, `cmd`).
 fn split_cd_prefix(command: &str) -> (&str, &str) {
     if let Some(after_cd) = command.strip_prefix("cd ") {
@@ -215,7 +310,7 @@ fn is_assignment(w: &str) -> bool {
 }
 
 /// Split into words, honouring single quotes, double quotes and backslashes.
-fn split_words(s: &str) -> Option<Vec<String>> {
+pub fn split_words(s: &str) -> Option<Vec<String>> {
     let mut words = Vec::new();
     let mut cur = String::new();
     let mut has = false;
@@ -358,8 +453,9 @@ mod tests {
         assert_eq!(p.pipe.unwrap().kind, PipeKind::Grep);
         let p = parse_pipeline("cargo test 2>&1 | head -n 5").unwrap();
         assert_eq!(p.pipe.unwrap().stage, "head -n 5");
+        let p = parse_pipeline("cargo test | head -n 5").unwrap();
+        assert!(!p.merged && p.pipe.is_some());
         for c in [
-            "cargo test | head -n 5", // stderr not merged into the pipe
             "cargo test 2>&1 | tail -f",
             "cargo test 2>&1 | tail -20 | head",
             "cargo test 2>&1 | sort",
@@ -371,6 +467,40 @@ mod tests {
             "cargo test 2>&1 && echo",
         ] {
             assert!(parse_pipeline(c).is_none(), "{c}");
+        }
+    }
+
+    #[test]
+    fn splits_chains() {
+        let texts = |c: &str| -> Option<Vec<(String, String)>> {
+            Some(
+                split_chain(c)?
+                    .into_iter()
+                    .map(|p| (p.text.trim().to_string(), p.sep.to_string()))
+                    .collect(),
+            )
+        };
+        assert_eq!(
+            texts("cd web && npm test && npm run build").unwrap(),
+            vec![
+                ("cd web".into(), "&&".into()),
+                ("npm test".into(), "&&".into()),
+                ("npm run build".into(), "".into())
+            ]
+        );
+        assert_eq!(texts("cat a; ls b\ntail c").unwrap().len(), 3);
+        assert_eq!(texts("echo 'a; b' \"c && d\" $(x; y)").unwrap().len(), 1);
+        assert_eq!(texts("cargo test 2>&1 | tail -5 || true").unwrap().len(), 2);
+        assert_eq!(texts("pytest |& grep x").unwrap().len(), 1);
+        for c in [
+            "sleep 1 &",
+            "cat <<'EOF'\nx\nEOF",
+            "ls # note",
+            "echo 'x",
+            "(a",
+            "case x in a) b;; esac",
+        ] {
+            assert!(split_chain(c).is_none(), "{c}");
         }
     }
 

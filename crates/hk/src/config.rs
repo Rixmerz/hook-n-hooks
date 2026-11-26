@@ -14,9 +14,81 @@ pub struct Config {
     /// Per-filter toggles, keyed by filter name (`cargo_test`, `pytest`, ...).
     pub filters: BTreeMap<String, bool>,
     pub limits: Limits,
-    pub format: Toggle,
+    pub format: Format,
     pub session_start: Toggle,
     pub rewrite: Rewrite,
+    pub mcp: Mcp,
+    pub misses: Misses,
+}
+
+/// PostToolUse formatting of touched files.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct Format {
+    pub enabled: bool,
+    /// Also run fixers (`eslint --fix`, `ruff check --fix`, `biome check
+    /// --write`). Off by default: a fixer can change behaviour, not only layout.
+    pub fix: bool,
+    /// Only keep the formatting when it changes no line outside the edit, so
+    /// an unformatted file does not get reformatted wholesale.
+    pub only_clean: bool,
+    /// `"edit"`: after each Edit/Write. `"stop"`: once, when Claude stops,
+    /// so a file does not change between two edits.
+    pub when: String,
+    /// Path fragments never formatted (in addition to lockfiles, migrations,
+    /// fixtures, snapshots and vendored code).
+    pub exclude: Vec<String>,
+}
+
+impl Default for Format {
+    fn default() -> Self {
+        Format {
+            enabled: true,
+            fix: false,
+            only_clean: true,
+            when: "edit".into(),
+            exclude: Vec::new(),
+        }
+    }
+}
+
+/// PostToolUse compaction of MCP tool results.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct Mcp {
+    pub enabled: bool,
+    /// Results whose JSON is at most this many characters are left alone.
+    pub max_chars: usize,
+    /// Tool names never shortened (`mcp__server__*` matches a whole server).
+    pub skip: Vec<String>,
+}
+
+impl Default for Mcp {
+    fn default() -> Self {
+        Mcp {
+            enabled: true,
+            max_chars: 8000,
+            skip: Vec::new(),
+        }
+    }
+}
+
+/// Recording of Bash outputs hk did not wrap (`hk misses`).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct Misses {
+    pub enabled: bool,
+    /// Outputs shorter than this many characters are not recorded.
+    pub min_chars: usize,
+}
+
+impl Default for Misses {
+    fn default() -> Self {
+        Misses {
+            enabled: true,
+            min_chars: 2000,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -30,6 +102,9 @@ pub struct Limits {
     pub max_errors: usize,
     /// Lines of context kept per failing test.
     pub stack_lines: usize,
+    /// Per-program cap for the generic filter, e.g. `{ openspec = 40 }`.
+    /// A program listed here is also wrapped with the generic filter.
+    pub commands: BTreeMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -58,9 +133,11 @@ impl Default for Config {
         Config {
             filters: BTreeMap::new(),
             limits: Limits::default(),
-            format: Toggle { enabled: true },
+            format: Format::default(),
             session_start: Toggle { enabled: true },
             rewrite: Rewrite::default(),
+            mcp: Mcp::default(),
+            misses: Misses::default(),
         }
     }
 }
@@ -73,6 +150,7 @@ impl Default for Limits {
             tail: 30,
             max_errors: 20,
             stack_lines: 5,
+            commands: BTreeMap::new(),
         }
     }
 }
@@ -94,21 +172,44 @@ impl Default for Rewrite {
 }
 
 impl Config {
-    /// Load `.claude/hk.toml` from `dir` or its closest ancestor that has one.
+    /// Load the user config (`~/.config/hk/hk.toml`, see
+    /// [`crate::paths::user_config`]) and then `.claude/hk.toml` from `dir` or
+    /// its closest ancestor that has one; project keys win over user keys.
     pub fn load(dir: &Path) -> Config {
-        for d in dir.ancestors() {
-            let p = d.join(".claude").join("hk.toml");
-            if let Ok(s) = std::fs::read_to_string(&p) {
-                return match Config::parse(&s) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        eprintln!("hk: ignoring invalid {}: {e}", p.display());
-                        Config::default()
-                    }
-                };
+        let mut merged = toml::Table::new();
+        let mut read = |p: &Path| {
+            let Ok(s) = std::fs::read_to_string(p) else {
+                return;
+            };
+            match s.parse::<toml::Table>() {
+                Ok(t) => merge(&mut merged, t),
+                Err(e) => {
+                    crate::doctor::record_error("config", &format!("{}: {e}", p.display()));
+                    eprintln!("hk: ignoring invalid {}: {e}", p.display());
+                }
+            }
+        };
+        if let Some(user) = crate::paths::user_config() {
+            read(&user);
+        }
+        if let Some(p) = Self::project_file(dir) {
+            read(&p);
+        }
+        match toml::Value::Table(merged).try_into() {
+            Ok(c) => c,
+            Err(e) => {
+                crate::doctor::record_error("config", &e.to_string());
+                eprintln!("hk: ignoring invalid config: {e}");
+                Config::default()
             }
         }
-        Config::default()
+    }
+
+    /// The project's `.claude/hk.toml`, if any.
+    pub fn project_file(dir: &Path) -> Option<std::path::PathBuf> {
+        dir.ancestors()
+            .map(|d| d.join(".claude").join("hk.toml"))
+            .find(|p| p.is_file())
     }
 
     pub fn parse(s: &str) -> Result<Config, toml::de::Error> {
@@ -117,6 +218,19 @@ impl Config {
 
     pub fn filter_enabled(&self, name: &str) -> bool {
         self.filters.get(name).copied().unwrap_or(true)
+    }
+}
+
+/// Deep-merge `over` into `base`: tables merge key by key, anything else
+/// (including arrays) is replaced.
+fn merge(base: &mut toml::Table, over: toml::Table) {
+    for (k, v) in over {
+        match (base.get_mut(&k), v) {
+            (Some(toml::Value::Table(b)), toml::Value::Table(o)) => merge(b, o),
+            (_, v) => {
+                base.insert(k, v);
+            }
+        }
     }
 }
 
@@ -132,5 +246,16 @@ mod tests {
         assert_eq!(c.limits.max_errors, 5);
         assert_eq!(c.limits.head, 30);
         assert!(c.format.enabled);
+    }
+
+    #[test]
+    fn project_overrides_user() {
+        let mut base: toml::Table = "[limits]\nhead = 5\ntail = 7\n[filters]\npytest = false\n"
+            .parse()
+            .unwrap();
+        merge(&mut base, "[limits]\nhead = 9\n".parse().unwrap());
+        let c: Config = toml::Value::Table(base).try_into().unwrap();
+        assert_eq!((c.limits.head, c.limits.tail), (9, 7));
+        assert!(!c.filter_enabled("pytest"));
     }
 }

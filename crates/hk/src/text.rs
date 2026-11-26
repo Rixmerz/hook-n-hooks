@@ -122,6 +122,39 @@ pub fn count_before(line: &str, word: &str) -> Option<u64> {
     digits.parse().ok()
 }
 
+/// Coverage totals worth keeping in a passing summary: the istanbul table
+/// header and `All files` row (Jest, Vitest), the `text-summary` lines, and
+/// coverage.py's `TOTAL` row.
+pub fn coverage_lines(output: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let lines: Vec<&str> = output.lines().collect();
+    for (i, l) in lines.iter().enumerate() {
+        let t = l.trim();
+        if t.starts_with("All files") && t.contains('|') {
+            if let Some(h) = lines[..i]
+                .iter()
+                .rev()
+                .take(3)
+                .find(|h| h.contains("% Stmts"))
+            {
+                out.push(format!("coverage: {}", h.trim()));
+            }
+            out.push(format!("coverage: {t}"));
+        } else if ["Statements", "Branches", "Functions", "Lines"]
+            .iter()
+            .any(|k| t.starts_with(k) && t.contains("% ("))
+            || (t.starts_with("TOTAL ") && t.ends_with('%'))
+        {
+            out.push(format!(
+                "coverage: {}",
+                t.split_whitespace().collect::<Vec<_>>().join(" ")
+            ));
+        }
+    }
+    out.dedup();
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -40,8 +40,10 @@ fn sanitize_session(s: &str) -> String {
     }
 }
 
-/// PreToolUse(Bash): rewrite `cmd` to `<hk> run --filter F --session S -- cmd`
-/// when a filter owns it. Returns the JSON to print, if any.
+/// PreToolUse(Bash): rewrite each part of the command line that a filter
+/// owns to `<hk> run --filter F --session S -- part`. Lists (`a && b; c`) are
+/// rewritten part by part; parts nobody owns stay verbatim. Returns the JSON
+/// to print, if any.
 pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value> {
     if input.get("tool_name")?.as_str()? != "Bash" {
         return None;
@@ -58,51 +60,42 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
     if command.contains(" run --filter ") && command.contains("hk") {
         return None; // already wrapped
     }
-    let cfg = Config::load(&cwd_of(input));
+    if command.contains("hk:raw") {
+        return None; // `# hk:raw`: the user wants the raw output
+    }
+    let cwd = cwd_of(input);
+    let cfg = Config::load(&cwd);
     if !cfg.rewrite.enabled {
         return None;
     }
-    let pipeline = shell::parse_pipeline(command)?;
-    let simple = &pipeline.left;
-    let cmd = Cmd::from_argv(&simple.words)?;
-    let cwd = cwd_of(input);
-    let dir = crate::scripts::prefix_dir(&cwd, simple.prefix);
-    let name = choose_filter(&cmd, dir.as_deref(), &cfg)?;
-    if matches!(&pipeline.pipe, Some(p) if p.kind == shell::PipeKind::Grep)
-        && !cfg.filter_enabled(filters::generic::NAME)
-    {
-        return None;
-    }
+    let plan = plan_rewrite(command, &cwd, &cfg)?;
+
     // Permission rules are evaluated against the rewritten command, so check
     // the original one against the user's own rules first (see permissions.rs).
-    let mut verdict = rules.verdict(simple.rest);
-    if let v @ (Verdict::Deny | Verdict::Ask) = rules.verdict(command) {
-        // A deny/ask rule on the full command (with `cd`/env prefix) also counts.
-        verdict = v;
-    }
     let catch_all = |rule: &str| rule == "Bash" || rule == "Bash(*)";
-    if let Some(pipe) = &pipeline.pipe {
-        // Every stage must be allowed on its own, and no stage may be denied.
-        match (rules.verdict(pipe.stage), &verdict) {
-            (v @ (Verdict::Deny | Verdict::Ask), _) => verdict = v,
-            (_, Verdict::Deny | Verdict::Ask) => {}
-            (Verdict::Allow(r2), Verdict::Allow(r1)) => {
-                if !catch_all(r1) {
-                    verdict = Verdict::Allow(format!("{r1} and {r2}"));
+    let mut verdict = Verdict::Unknown;
+    let mut rules_used: Vec<String> = Vec::new();
+    let mut all_allowed = true;
+    for stage in &plan.stages {
+        match rules.verdict(stage) {
+            Verdict::Deny | Verdict::Ask => return None,
+            Verdict::Allow(r) => {
+                if !rules_used.contains(&r) {
+                    rules_used.push(r);
                 }
             }
-            (_, Verdict::Allow(r1)) if catch_all(r1) => {}
-            _ => verdict = Verdict::Unknown,
+            Verdict::Unknown => all_allowed = false,
         }
     }
-    // With a `cd`/env prefix, only a catch-all `Bash` rule is known to cover
-    // the whole command line; narrower rules are not restated.
-    if !simple.prefix.is_empty() || !simple.env.is_empty() {
-        if let Verdict::Allow(rule) = &verdict {
-            if !catch_all(rule) {
-                verdict = Verdict::Unknown;
-            }
-        }
+    match rules.verdict(command) {
+        Verdict::Deny | Verdict::Ask => return None,
+        Verdict::Allow(r) if catch_all(&r) => verdict = Verdict::Allow(r),
+        _ => {}
+    }
+    // A single plain stage may restate a narrow rule; with a list, `cd` or an
+    // env prefix only a catch-all `Bash` rule is known to cover the line.
+    if matches!(verdict, Verdict::Unknown) && all_allowed && plan.single_plain {
+        verdict = Verdict::Allow(rules_used.join(" and "));
     }
     let mode = input
         .get("permission_mode")
@@ -126,27 +119,7 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
             .unwrap_or(""),
     );
     let hk = shell::quote(hk_path);
-    let (pre, env, rest) = (simple.prefix, simple.env, simple.rest);
-    let rewritten = match &pipeline.pipe {
-        // `hk run` merges the child's stderr itself; the `2>&1` stays on hk.
-        None if pipeline.merged => {
-            format!("{pre}{env}{hk} run --filter {name} --session {session} -- {rest} 2>&1")
-        }
-        None => format!("{pre}{env}{hk} run --filter {name} --session {session} -- {rest}"),
-        // The pipe stays in the shell, so its exit status is the one Bash
-        // would report anyway; hk prints the log path first *and* last.
-        Some(p) if p.kind == shell::PipeKind::Slice => format!(
-            "{pre}{env}{hk} run --filter {name} --session {session} --piped -- {rest} 2>&1 | {}",
-            p.stage
-        ),
-        // grep must see the raw output: wrap the grep stage instead, and cap
-        // what grep prints.
-        Some(p) => format!(
-            "{pre}{env}{rest} 2>&1 | {hk} run --filter {} --session {session} -- {}",
-            filters::generic::NAME,
-            p.stage
-        ),
-    };
+    let rewritten = plan.render(&hk, &session);
     // `updatedInput` replaces the whole input object: echo every other field.
     let mut updated = tool_input.clone();
     updated.insert("command".into(), Value::String(rewritten));
@@ -162,6 +135,167 @@ pub fn pre_tool_use(input: &Value, hk_path: &str, rules: &Rules) -> Option<Value
             json!(format!("hk: original command allowed by your rule {rule}"));
     }
     Some(json!({ "hookSpecificOutput": out }))
+}
+
+/// How one part of a command line is rewritten.
+struct Wrap<'a> {
+    filter: &'static str,
+    env: &'a str,
+    rest: &'a str,
+    merged: bool,
+    pipe: Option<shell::Pipe<'a>>,
+}
+
+enum Piece<'a> {
+    Verbatim(&'a str),
+    Wrapped {
+        lead: &'a str,
+        wrap: Wrap<'a>,
+        trail: &'a str,
+    },
+}
+
+/// The rewrite of a whole command line, before the hk path and session are known.
+pub struct Plan<'a> {
+    pieces: Vec<(Piece<'a>, &'a str)>,
+    /// Every command of the line, for the permission check.
+    stages: Vec<&'a str>,
+    /// One part, no `cd`, no env prefix (a pipe is fine: each stage is checked).
+    single_plain: bool,
+    /// Filters picked, in order (for `hk explain`).
+    pub filters: Vec<&'static str>,
+}
+
+impl Plan<'_> {
+    fn render(&self, hk: &str, session: &str) -> String {
+        let mut s = String::new();
+        for (piece, sep) in &self.pieces {
+            match piece {
+                Piece::Verbatim(t) => s.push_str(t),
+                Piece::Wrapped { lead, wrap, trail } => {
+                    s.push_str(lead);
+                    s.push_str(&render_wrap(wrap, hk, session));
+                    s.push_str(trail);
+                }
+            }
+            s.push_str(sep);
+        }
+        s
+    }
+}
+
+fn render_wrap(w: &Wrap, hk: &str, session: &str) -> String {
+    let (env, rest, name) = (w.env, w.rest, w.filter);
+    let base = format!("{env}{hk} run --filter {name} --session {session}");
+    match &w.pipe {
+        // `hk run` merges the child's stderr itself; the `2>&1` stays on hk.
+        None if w.merged => format!("{base} -- {rest} 2>&1"),
+        None => format!("{base} -- {rest}"),
+        // The pipe stays in the shell, so its exit status is the one Bash
+        // would report anyway; hk prints the log path first *and* last.
+        Some(p) if p.kind == shell::PipeKind::Slice && w.merged => {
+            format!("{base} --piped -- {rest} 2>&1 | {}", p.stage)
+        }
+        // No `2>&1`: tail/head only ever saw stdout, so keep it that way.
+        Some(p) if p.kind == shell::PipeKind::Slice => {
+            format!("{base} --piped --stdout-only -- {rest} | {}", p.stage)
+        }
+        // grep must see the raw output: wrap the grep stage instead, and cap
+        // what grep prints.
+        Some(p) => {
+            let merge = if w.merged { " 2>&1" } else { "" };
+            format!(
+                "{env}{rest}{merge} | {hk} run --filter {} --session {session} -- {}",
+                filters::generic::NAME,
+                p.stage
+            )
+        }
+    }
+}
+
+/// Decide, part by part, what to wrap. `None` when nothing would change.
+pub fn plan_rewrite<'a>(command: &'a str, cwd: &Path, cfg: &Config) -> Option<Plan<'a>> {
+    let parts = shell::split_chain(command)?;
+    let mut dir = Some(cwd.to_path_buf());
+    let mut pieces = Vec::new();
+    let mut stages = Vec::new();
+    let mut filters_used = Vec::new();
+    let n_parts = parts.iter().filter(|p| !p.text.trim().is_empty()).count();
+    let mut single_plain = n_parts == 1;
+    for part in parts {
+        let body = part.text.trim();
+        let lead = &part.text[..part.text.len() - part.text.trim_start().len()];
+        let trail = &part.text[part.text.trim_end().len()..];
+        if body.is_empty() {
+            pieces.push((Piece::Verbatim(part.text), part.sep));
+            continue;
+        }
+        let wrap = shell::parse_pipeline(body).and_then(|p| {
+            for st in std::iter::once(p.left.rest).chain(p.pipe.as_ref().map(|x| x.stage)) {
+                stages.push(st);
+            }
+            if !p.left.env.is_empty() {
+                single_plain = false;
+            }
+            // `cd DIR` as its own part: later parts run there.
+            if p.left.words.first().map(String::as_str) == Some("cd") {
+                dir = match (&dir, p.left.words.get(1)) {
+                    (Some(d), Some(t))
+                        if p.left.words.len() == 2 && !t.starts_with('~') && !t.contains('$') =>
+                    {
+                        Some(d.join(t))
+                    }
+                    _ => None,
+                };
+                single_plain = false;
+                return None;
+            }
+            if p.left.env.contains("HK_RAW=1") {
+                return None;
+            }
+            let cmd = Cmd::from_argv(&p.left.words)?;
+            let name = choose_filter(&cmd, dir.as_deref(), cfg)?;
+            if matches!(&p.pipe, Some(x) if x.kind == shell::PipeKind::Grep)
+                && !cfg.filter_enabled(filters::generic::NAME)
+            {
+                return None;
+            }
+            Some(Wrap {
+                filter: name,
+                env: p.left.env,
+                rest: p.left.rest,
+                merged: p.merged,
+                pipe: p.pipe,
+            })
+        });
+        if wrap.is_none() && shell::parse_pipeline(body).is_none() {
+            // Something we cannot read: still check it as a whole.
+            stages.push(body);
+        }
+        match wrap {
+            Some(w) => {
+                filters_used.push(w.filter);
+                pieces.push((
+                    Piece::Wrapped {
+                        lead,
+                        wrap: w,
+                        trail,
+                    },
+                    part.sep,
+                ));
+            }
+            None => pieces.push((Piece::Verbatim(part.text), part.sep)),
+        }
+    }
+    if filters_used.is_empty() {
+        return None;
+    }
+    Some(Plan {
+        pieces,
+        stages,
+        single_plain,
+        filters: filters_used,
+    })
 }
 
 /// Pick the filter for a command, or `None` to leave it alone. `dir` is the
@@ -203,28 +337,55 @@ pub fn choose_filter(cmd: &Cmd, dir: Option<&Path>, cfg: &Config) -> Option<&'st
 /// `rewrite.generic_commands` in hk.toml: wrap these with the generic filter.
 fn generic_if_listed(cmd: &Cmd, cfg: &Config) -> Option<&'static str> {
     (cfg.filter_enabled(filters::generic::NAME)
-        && cfg.rewrite.generic_commands.contains(&cmd.program))
+        && (cfg.rewrite.generic_commands.contains(&cmd.program)
+            || cfg.limits.commands.contains_key(&cmd.program)))
     .then_some(filters::generic::NAME)
 }
 
-/// PostToolUse(Edit|Write|MultiEdit): format + autofix the touched file.
+/// PostToolUse: format touched files, shorten large MCP results, and record
+/// large Bash outputs hk did not wrap.
 pub fn post_tool_use(input: &Value) -> Option<Value> {
     let tool = input.get("tool_name")?.as_str()?;
-    if !matches!(tool, "Edit" | "Write" | "MultiEdit") {
-        return None;
-    }
-    let file = input.get("tool_input")?.get("file_path")?.as_str()?;
     let cwd = cwd_of(input);
     let cfg = Config::load(&cwd);
+    match tool {
+        "Edit" | "Write" | "MultiEdit" => post_edit(input, tool, &cwd, &cfg),
+        "Bash" => {
+            record_miss(input, &cwd, &cfg);
+            None
+        }
+        t if t.starts_with("mcp__") => crate::mcp::post_tool_use(input, &cfg),
+        _ => None,
+    }
+}
+
+fn post_edit(input: &Value, tool: &str, cwd: &Path, cfg: &Config) -> Option<Value> {
     if !cfg.format.enabled {
         return None;
     }
+    let ti = input.get("tool_input")?;
+    let file = ti.get("file_path")?.as_str()?;
     let path = if Path::new(file).is_absolute() {
         PathBuf::from(file)
     } else {
         cwd.join(file)
     };
-    let ctx = crate::format::process(&path, &cfg.limits)?;
+    if cfg.format.when == "stop" {
+        touched::add(&session_of(input), &path);
+        return None;
+    }
+    let edited = match tool {
+        "Write" => crate::format::Edited::Whole,
+        "MultiEdit" => crate::format::Edited::Snippets(
+            ti.get("edits")?
+                .as_array()?
+                .iter()
+                .filter_map(|e| e.get("new_string")?.as_str().map(String::from))
+                .collect(),
+        ),
+        _ => crate::format::Edited::Snippets(vec![ti.get("new_string")?.as_str()?.to_string()]),
+    };
+    let ctx = crate::format::process(&path, cfg, &edited)?;
     Some(json!({
         "hookSpecificOutput": {
             "hookEventName": "PostToolUse",
@@ -233,14 +394,198 @@ pub fn post_tool_use(input: &Value) -> Option<Value> {
     }))
 }
 
+fn session_of(input: &Value) -> String {
+    sanitize_session(
+        input
+            .get("session_id")
+            .and_then(Value::as_str)
+            .unwrap_or(""),
+    )
+}
+
+/// Stop: with `format.when = "stop"`, format every file touched this turn.
+pub fn stop(input: &Value) -> Option<Value> {
+    let cwd = cwd_of(input);
+    let cfg = Config::load(&cwd);
+    if !cfg.format.enabled || cfg.format.when != "stop" {
+        return None;
+    }
+    let session = session_of(input);
+    let mut notes = Vec::new();
+    for p in touched::take(&session) {
+        if let Some(n) = crate::format::process(&p, &cfg, &crate::format::Edited::Whole) {
+            notes.push(n);
+        }
+    }
+    (!notes.is_empty()).then(|| json!({ "systemMessage": notes.join("\n") }))
+}
+
+/// Files edited since the last Stop, per session (for `format.when = "stop"`).
+mod touched {
+    use std::path::{Path, PathBuf};
+
+    fn file(session: &str) -> PathBuf {
+        crate::paths::data_dir()
+            .join("touched")
+            .join(format!("{session}.txt"))
+    }
+
+    pub fn add(session: &str, path: &Path) {
+        let f = file(session);
+        if let Some(d) = f.parent() {
+            let _ = crate::paths::create_private_dir(d);
+        }
+        let mut list = std::fs::read_to_string(&f).unwrap_or_default();
+        let p = path.display().to_string();
+        if !list.lines().any(|l| l == p) {
+            list.push_str(&p);
+            list.push('\n');
+            let _ = std::fs::write(&f, list);
+        }
+    }
+
+    pub fn take(session: &str) -> Vec<PathBuf> {
+        let f = file(session);
+        let list = std::fs::read_to_string(&f).unwrap_or_default();
+        let _ = std::fs::remove_file(&f);
+        list.lines().map(PathBuf::from).collect()
+    }
+}
+
+/// Why a command line is not wrapped, or which filters would wrap it.
+pub fn explain(command: &str, cwd: &Path, cfg: &Config) -> String {
+    if command.contains("hk:raw") {
+        return "not wrapped: `hk:raw` asks for raw output".into();
+    }
+    if !cfg.rewrite.enabled {
+        return "not wrapped: rewrite.enabled = false".into();
+    }
+    if let Some(plan) = plan_rewrite(command, cwd, cfg) {
+        return format!(
+            "wrapped with: {} (if your permission rules allow it, or in auto/bypass mode)",
+            plan.filters.join(", ")
+        );
+    }
+    let Some(parts) = shell::split_chain(command) else {
+        return "not wrapped: heredoc, background `&`, comment or unbalanced quotes".into();
+    };
+    let mut reasons = Vec::new();
+    for part in parts {
+        let body = part.text.trim();
+        if body.is_empty() {
+            continue;
+        }
+        let r = match shell::parse_pipeline(body) {
+            None => "redirection, subshell, `$(...)` or an unsupported pipe".to_string(),
+            Some(p) => match Cmd::from_argv(&p.left.words) {
+                None => "empty command".into(),
+                Some(c) if filters::is_watch_mode(&c) => "watch/interactive mode".into(),
+                Some(c) => format!("no filter for `{}`", c.program),
+            },
+        };
+        reasons.push(format!("`{body}`: {r}"));
+    }
+    format!("not wrapped:\n  {}", reasons.join("\n  "))
+}
+
+/// Short machine reason for `hk misses`.
+fn miss_reason(command: &str, cwd: &Path, cfg: &Config) -> String {
+    if command.contains("hk:raw") {
+        return "raw".into();
+    }
+    if plan_rewrite(command, cwd, cfg).is_some() {
+        return "permissions".into();
+    }
+    let Some(parts) = shell::split_chain(command) else {
+        return "unparsable".into();
+    };
+    for part in parts.iter().rev() {
+        let body = part.text.trim();
+        if body.is_empty() {
+            continue;
+        }
+        return match shell::parse_pipeline(body) {
+            None => "shape".into(),
+            Some(p) => match Cmd::from_argv(&p.left.words) {
+                Some(c) if filters::is_watch_mode(&c) => "watch".into(),
+                Some(c) => format!("no-filter:{}", c.program),
+                None => "empty".into(),
+            },
+        };
+    }
+    "empty".into()
+}
+
+fn record_miss(input: &Value, cwd: &Path, cfg: &Config) {
+    if !cfg.misses.enabled {
+        return;
+    }
+    let Some(command) = input
+        .get("tool_input")
+        .and_then(|t| t.get("command"))
+        .and_then(Value::as_str)
+    else {
+        return;
+    };
+    if command.contains(" run --filter ") {
+        return; // wrapped by hk: already counted by `hk run`
+    }
+    let resp = input.get("tool_response");
+    let size = |k: &str| {
+        resp.and_then(|r| r.get(k))
+            .and_then(Value::as_str)
+            .map_or(0, |s| s.chars().count())
+    };
+    let raw = match resp {
+        Some(Value::String(s)) => s.chars().count(),
+        _ => size("stdout") + size("stderr"),
+    };
+    if raw < cfg.misses.min_chars {
+        return;
+    }
+    let reason = miss_reason(command, cwd, cfg);
+    let program = shell::split_chain(command)
+        .and_then(|p| p.last().and_then(|x| shell::split_words(x.text.trim())))
+        .and_then(|w| w.into_iter().find(|x| !x.contains('=')))
+        .map(|w| crate::filters::program_name(&w))
+        .unwrap_or_default();
+    let _ = crate::stats::append(
+        &crate::paths::stats_file(),
+        &crate::stats::Record {
+            ts: crate::paths::now(),
+            session: session_of(input),
+            filter: program,
+            raw,
+            out: raw,
+            project: crate::paths::project_root(cwd).display().to_string(),
+            exit: None,
+            ms: None,
+            kind: format!("miss:{reason}"),
+        },
+    );
+}
+
 /// SessionStart: plain-text repo map (Claude Code adds SessionStart stdout to context).
 pub fn session_start(input: &Value) -> Option<String> {
     let cwd = cwd_of(input);
     let cfg = Config::load(&cwd);
-    if !cfg.session_start.enabled {
-        return None;
+    let mut notes = String::new();
+    let root = std::env::var_os("CLAUDE_PLUGIN_ROOT").map(PathBuf::from);
+    for n in [
+        crate::doctor::version_note(root.as_deref()),
+        crate::doctor::unseen_note(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        notes.push_str(&n);
+        notes.push('\n');
     }
-    Some(crate::repomap::render(&cwd))
+    if !cfg.session_start.enabled {
+        return (!notes.is_empty()).then_some(notes);
+    }
+    let short = input.get("source").and_then(Value::as_str) == Some("compact");
+    Some(crate::repomap::render_with(&cwd, short) + &notes)
 }
 
 #[cfg(test)]
@@ -300,7 +645,6 @@ mod tests {
     fn leaves_other_commands_alone() {
         assert_eq!(pre("ls -la"), None);
         assert_eq!(pre("npm install left-pad"), None); // deny rule must keep working
-        assert_eq!(pre("cargo test | tail -5"), None);
         assert_eq!(pre("npx vitest"), None); // watch mode
         assert_eq!(
             pre("'/opt/hk/hk' run --filter cargo_test --session x -- cargo test"),
@@ -340,7 +684,20 @@ mod tests {
         );
         assert_eq!(pre("cargo test 2>&1 | sort"), None);
         assert_eq!(pre("cargo test 2>/dev/null"), None);
-        assert_eq!(pre("cargo build && cargo test"), None);
+        assert_eq!(
+            pre("cargo test | tail -5").as_deref(),
+            Some("'/opt/hk/hk' run --filter cargo_test --session abc-123 --piped --stdout-only -- cargo test | tail -5")
+        );
+        assert_eq!(
+            pre("cargo build && cargo test; ls").as_deref(),
+            Some("'/opt/hk/hk' run --filter build --session abc-123 -- cargo build && '/opt/hk/hk' run --filter cargo_test --session abc-123 -- cargo test; ls")
+        );
+        assert_eq!(pre("cargo test # hk:raw"), None);
+        assert_eq!(pre("HK_RAW=1 cargo test"), None);
+        assert_eq!(
+            pre("hide exec TOKEN -- 'cargo test'").as_deref(),
+            Some("'/opt/hk/hk' run --filter cargo_test --session abc-123 -- hide exec TOKEN -- 'cargo test'")
+        );
     }
 
     #[test]

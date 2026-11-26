@@ -276,3 +276,26 @@ for x86_64 and aarch64.
   arrives. Watch modes are never wrapped.
 - Filters are heuristic. Anything a filter does not recognise falls back to
   generic head/tail, which is never worse than the raw output plus one log line.
+
+## v1.1 additions
+
+- **Lists** (`shell::split_chain`): the command line is split on top-level
+  `&&`, `||`, `;` and newlines; each part goes through `parse_pipeline` and is
+  wrapped on its own (`hook::plan_rewrite`). Separators and untouched parts are
+  kept byte for byte. Every part and pipe stage is checked against the
+  permission rules; a narrow allow rule is only restated for a single part
+  with no `cd` or env prefix.
+- **`--stdout-only`**: for `cmd | tail` without `2>&1`, the child's stderr is
+  inherited instead of merged, so the pipe stage sees what it saw before.
+- **PostToolUse dispatch** (`hook::post_tool_use`): Edit/Write/MultiEdit go to
+  `format`, `mcp__*` to `mcp` (`updatedToolOutput`, shape-preserving: only
+  long strings change), Bash to the miss recorder.
+- **Failing open, visibly** (`doctor`): hook errors and panics are appended to
+  `errors.jsonl` (capped at 200); `hk doctor` and the next SessionStart report
+  them.
+- **Logs** (`run`, `redact`): written `0600` in a `0700` directory, line by
+  line through `redact::line`. Names are `<nanos>-<pid>-<session>-<filter>.log`
+  so pruning can spare the running session.
+- **Formatting** (`format`): the change a formatter made is compared with the
+  edited lines (common prefix/suffix hull against the lines the new strings
+  occupy); with `only_clean`, a change outside them is reverted.

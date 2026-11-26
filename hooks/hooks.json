@@ -1,5 +1,5 @@
 {
-  "description": "hook-n-hooks: compact Bash output, format touched files, inject a repo map.",
+  "description": "hook-n-hooks: compact Bash and MCP output, format touched files, inject a repo map.",
   "hooks": {
     "SessionStart": [
       {
@@ -32,6 +32,37 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/hk\" hook post-tool-use",
             "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/hk\" hook post-tool-use",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/hk\" hook post-tool-use",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/hk\" hook stop",
+            "timeout": 60
           }
         ]
       }

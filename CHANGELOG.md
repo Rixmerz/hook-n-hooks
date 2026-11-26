@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-26
+
+### Added
+
+- Command lists: `a && b`, `a; b`, `a || b` and newlines are rewritten command
+  by command; `cd DIR` parts are followed for script resolution. Heredocs,
+  background `&`, comments and subshells are still left alone.
+- Pipes without `2>&1`: `cmd | tail -N`, `cmd | head -N` and `cmd | grep`.
+  `hk run --stdout-only` captures stdout only and lets stderr through, so the
+  next stage sees exactly what it saw before.
+- `hide exec NAME -- 'cmd'` is recognised by its inner command.
+- Raw escape: `HK_RAW=1 cmd` or `# hk:raw` skips the rewrite.
+- MCP compaction: a PostToolUse hook shortens large MCP results with
+  `updatedToolOutput`, keeping their shape; the full result goes to a log.
+  Configured in `[mcp]`.
+- `hk misses`: a PostToolUse(Bash) hook records large outputs hk did not wrap,
+  with the reason, so filters can be chosen from data. Configured in `[misses]`.
+- `hk explain "<cmd>"`: which filter would wrap a command, or why not.
+- `hk log last|list|path [--session] [--grep] [--lines A:B]`: read part of a
+  log without opening the file or quoting the macOS path.
+- `hk doctor` and an error log: hooks still fail open, but record what went
+  wrong (including panics); the next session start mentions new errors.
+- Version check: the session start says when the plugin cache holds a newer
+  version than the running binary.
+- `hk capture <log> <tool> <case>`: turn a log into an anonymised fixture.
+- Every wrapped run ends with `[hk] filter=… exit=… time=…s omitted=…`.
+- Test re-runs show `[hk] vs last run: N new, M fixed` with the failure names.
+- Coverage totals (istanbul `All files`, Jest `text-summary`, coverage.py
+  `TOTAL`) are kept in passing and failing test summaries.
+- Filters: `angular` (`ng build`, `ng test --watch=false`), `json` (API
+  responses, `gh api`, `kubectl get -o json`) and `table` (`psql -c`,
+  `mysql -e`, `sqlite3`, `kubectl get`, `docker ps`/`images`).
+- `[limits.commands]`: a generic-filter cap per program.
+- User config `~/.config/hk/hk.toml`, merged under the project's.
+- `hk stats --project`, `--json`, and a per-project breakdown; MCP savings
+  count under `mcp`.
+- Repo map: git branch, ahead/behind, uncommitted count, last 3 commits and
+  worktree origin; the commands CI runs (Bitbucket, GitLab, GitHub); one line
+  per repository in a folder of repositories; a short map after compaction.
+- Formatting: `format.when = "stop"` formats touched files once when Claude
+  stops; `prettierd` and `eslint_d` are used when present.
+
+### Changed
+
+- Formatting runs formatters only by default; fixers (`eslint --fix`,
+  `ruff check --fix`, `biome check --write`) need `format.fix = true`.
+- `format.only_clean` (default on): when formatting would change lines outside
+  the edit, the edit is kept as written and hk says so.
+- Lockfiles, migrations, fixtures, snapshots, vendored, generated and minified
+  files are never formatted; `format.exclude` adds more. JS tools run from the
+  project root so `.prettierignore` applies.
+- Logs and stats are written `0600` in `0700` directories, with known secret
+  shapes masked. Log names carry the session.
+- Log pruning: by age (7 days); above 1,000 logs the oldest go first, never
+  the running session's or the last hour's.
+- The repo map hides git-ignored dot directories and SQLite/lock side files,
+  and lists up to 40 entries in `src/`, `tests/` and similar directories.
+- README: the data directory is documented per OS.
+
 ## [1.0.0] - 2026-11-25
 
 ### Added

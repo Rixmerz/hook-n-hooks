@@ -44,3 +44,48 @@ fn env_path(k: &str) -> Option<PathBuf> {
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
 }
+
+/// Create `dir` (and parents) readable only by the current user on Unix.
+pub fn create_private_dir(dir: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
+/// The closest ancestor of `dir` that holds a `.git` entry, else `dir`.
+pub fn project_root(dir: &std::path::Path) -> PathBuf {
+    dir.ancestors()
+        .find(|d| d.join(".git").exists())
+        .unwrap_or(dir)
+        .to_path_buf()
+}
+
+/// Global user config: `$HK_CONFIG`, else `$XDG_CONFIG_HOME/hk/hk.toml`,
+/// else `~/.config/hk/hk.toml` (every OS, so one path is documented).
+pub fn user_config() -> Option<PathBuf> {
+    if let Some(p) = env_path("HK_CONFIG") {
+        return Some(p);
+    }
+    let base = env_path("XDG_CONFIG_HOME").or_else(|| {
+        env_path("HOME")
+            .or_else(|| env_path("USERPROFILE"))
+            .map(|h| h.join(".config"))
+    })?;
+    Some(base.join("hk").join("hk.toml"))
+}
+
+/// Errors hk swallowed while failing open (see `hk doctor`).
+pub fn errors_file() -> PathBuf {
+    data_dir().join("errors.jsonl")
+}
+
+pub fn now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}

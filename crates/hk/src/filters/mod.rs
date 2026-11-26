@@ -12,6 +12,7 @@
 
 use crate::config::Limits;
 
+pub mod angular;
 pub mod build;
 pub mod cargo_test;
 pub mod deno_bun_test;
@@ -22,12 +23,14 @@ pub mod git;
 pub mod go_test;
 pub mod install;
 pub mod js_test;
+pub mod json;
 pub mod jvm;
 pub mod lint;
 pub mod listing;
 pub mod logs;
 pub mod pytest;
 pub mod script;
+pub mod table;
 pub mod test_runners;
 
 /// A parsed command line: the effective program and its arguments, after
@@ -53,6 +56,25 @@ impl Cmd {
                 }
                 ("python" | "python3" | "py", Some("-m")) => &tail[1..],
                 ("bundle", Some("exec")) => skip_flags(&tail[1..]),
+                // `hide exec NAME... -- 'cmd args'`: the inner command decides.
+                ("hide", Some("exec")) => {
+                    let i = tail.iter().position(|a| a == "--")?;
+                    let inner = &tail[i + 1..];
+                    if let [one] = inner {
+                        if one.contains(char::is_whitespace) {
+                            let words = crate::shell::split_words(one)?;
+                            return Cmd::from_argv(&words);
+                        }
+                    }
+                    inner
+                }
+                ("env" | "time" | "nice", _) => {
+                    let n = tail
+                        .iter()
+                        .take_while(|a| a.starts_with('-') || a.contains('='))
+                        .count();
+                    &tail[n..]
+                }
                 _ => {
                     return Some(Cmd {
                         program: prog,
@@ -123,6 +145,7 @@ pub fn registry() -> &'static [&'static dyn Filter] {
         &test_runners::Phpunit,
         &test_runners::MixTest,
         &test_runners::Playwright,
+        &angular::Angular,
         &jvm::Jvm,
         &dotnet::Dotnet,
         &build::Build,
@@ -132,6 +155,8 @@ pub fn registry() -> &'static [&'static dyn Filter] {
         &docker::Docker,
         &logs::Logs,
         &listing::Listing,
+        &json::Json,
+        &table::Table,
         &script::Script,
     ]
 }
