@@ -41,7 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cargo clippy` moved from the `build` filter to the new `lint` filter.
 - `js_test` no longer claims `npm test` / `pnpm test` / `yarn test` /
   `bun run test` by name; those go through script resolution instead, so a
-  `test` script that runs pytest or cargo gets the right filter.
+  `test` script that runs pytest or cargo gets the right filter. A script that
+  runs bare `vitest` is wrapped (without a TTY it runs once); `vitest --watch`
+  is not.
+- `make`, `just` and `task` listed in `rewrite.generic_commands` are no longer
+  wrapped for server-like targets (`dev`, `run`, `serve`, `start`, `watch`...).
+- (new in this release) `mvn` and `gradle` goals that start a server (`spring-boot:run`,
+  `quarkus:dev`, `exec:java`, `bootRun`, `run`) are never wrapped.
+- `playwright test` is only wrapped with an explicit terminal reporter
+  (`--reporter=list|line|dot|github`): the default `html` reporter serves the
+  report after a failure and never exits.
 
 ## [0.1.0] - 2026-11-23
 

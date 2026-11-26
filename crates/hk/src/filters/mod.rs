@@ -151,14 +151,21 @@ pub fn by_name(name: &str) -> Option<&'static dyn Filter> {
 /// True when the command runs in watch/interactive mode and must not be
 /// wrapped (the wrapper buffers output until exit).
 pub fn is_watch_mode(cmd: &Cmd) -> bool {
-    let watchy = cmd.args.iter().any(|a| {
-        a == "--watch" || a == "-w" || a.starts_with("--watch=") || a == "--watchAll" || a == "--ui"
-    });
     // Bare `vitest` (no `run`) is watch mode in a TTY; be conservative.
     let bare_vitest =
         cmd.program == "vitest" && !cmd.has_arg("run") && !cmd.args.iter().any(|a| a == "--run");
+    is_explicit_watch(cmd) || bare_vitest
+}
+
+/// Watch/serve flags and subcommands. Unlike [`is_watch_mode`], bare `vitest`
+/// is allowed: behind a package script (`"test": "vitest"`) with no TTY and
+/// no `--watch`, vitest runs once and exits (checked with vitest 5).
+pub fn is_explicit_watch(cmd: &Cmd) -> bool {
+    let watchy = cmd.args.iter().any(|a| {
+        a == "--watch" || a == "-w" || a.starts_with("--watch=") || a == "--watchAll" || a == "--ui"
+    });
     let bare_dev = matches!(cmd.subcommand(), Some("dev" | "serve" | "start" | "watch"));
-    watchy || bare_vitest || bare_dev
+    watchy || bare_dev
 }
 
 #[cfg(test)]

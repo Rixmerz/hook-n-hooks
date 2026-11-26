@@ -173,6 +173,11 @@ pub fn choose_filter(cmd: &Cmd, dir: Option<&Path>, cfg: &Config) -> Option<&'st
         return None;
     }
     let enabled = |n: &str| cfg.filter_enabled(n);
+    // Built-in commands win over same-named scripts (`pnpm install` with an
+    // `install` script is still an install).
+    if let Some(f) = filters::find(cmd, &enabled) {
+        return Some(f.name());
+    }
     let has_script = |n: &str| dir.is_some_and(|d| scripts::package_script(d, n).is_some());
     if let Some(w) = scripts::wrapper(cmd, &has_script) {
         let decision = match dir {
@@ -182,7 +187,7 @@ pub fn choose_filter(cmd: &Cmd, dir: Option<&Path>, cfg: &Config) -> Option<&'st
         let resolved = match decision {
             Decision::Skip => return None,
             Decision::Resolved(c) => filters::find(&c, &enabled).map(|f| f.name()),
-            Decision::Sniff => None,
+            Decision::Sniff | Decision::Unknown => None,
         };
         if resolved.is_some() {
             return resolved;
@@ -192,10 +197,7 @@ pub fn choose_filter(cmd: &Cmd, dir: Option<&Path>, cfg: &Config) -> Option<&'st
         }
         return generic_if_listed(cmd, cfg);
     }
-    match filters::find(cmd, &enabled) {
-        Some(f) => Some(f.name()),
-        None => generic_if_listed(cmd, cfg),
-    }
+    generic_if_listed(cmd, cfg)
 }
 
 /// `rewrite.generic_commands` in hk.toml: wrap these with the generic filter.
@@ -366,7 +368,7 @@ mod tests {
         std::fs::create_dir_all(dir.join("web")).unwrap();
         std::fs::write(
             dir.join("web/package.json"),
-            r#"{"scripts":{"test":"vitest run","lint":"eslint .","dev":"vite","e2e":"playwright test"}}"#,
+            r#"{"scripts":{"test":"vitest run","lint":"eslint .","dev":"vite","e2e":"playwright test --reporter=list","install":"node-gyp rebuild"}}"#,
         )
         .unwrap();
         std::fs::write(
@@ -395,11 +397,34 @@ mod tests {
         assert_eq!(f("cd web && pnpm lint").as_deref(), Some("lint"));
         assert_eq!(f("cd web && npm run e2e").as_deref(), Some("playwright"));
         assert_eq!(f("cd web && npm run dev"), None);
+        // A same-named script does not hide the built-in `pnpm install`.
+        assert_eq!(f("cd web && pnpm install").as_deref(), Some("install"));
         assert_eq!(f("cd web && npm run build").as_deref(), Some("script"));
         assert_eq!(f("make test").as_deref(), Some("pytest"));
         assert_eq!(f("make serve"), None);
         assert_eq!(f("make"), None);
         assert_eq!(f("just test").as_deref(), Some("script"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn generic_commands_still_wrap_unknown_targets() {
+        let dir = std::env::temp_dir().join(format!("hk-hook-generic-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join(".claude")).unwrap();
+        std::fs::write(
+            dir.join(".claude/hk.toml"),
+            "[rewrite]\ngeneric_commands = [\"make\"]\n",
+        )
+        .unwrap();
+        let all = Rules {
+            allow: vec!["Bash".into()],
+            ..Rules::default()
+        };
+        let got = |c: &str| pre_with(c, &dir, &all, "default");
+        assert!(got("make docs").unwrap().contains("--filter generic "));
+        assert!(got("make").unwrap().contains("--filter generic "));
+        assert!(got("make test").unwrap().contains("--filter script "));
+        assert_eq!(got("make serve"), None); // never, even when listed
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -14,7 +14,7 @@
 //! terminate (`test`, `build`, `lint`...); the `script` filter then picks the
 //! right filter from the output signature (see [`crate::filters::script`]).
 
-use crate::filters::{is_watch_mode, Cmd};
+use crate::filters::{is_explicit_watch, Cmd};
 use crate::shell;
 use std::path::{Path, PathBuf};
 
@@ -137,7 +137,10 @@ pub enum Decision {
     Resolved(Cmd),
     /// Wrap with the output-sniffing `script` filter.
     Sniff,
-    /// Leave the command alone.
+    /// Unknown script that may not terminate: leave it alone, unless the user
+    /// listed the wrapper in `rewrite.generic_commands`.
+    Unknown,
+    /// Runs a server or a watcher: never wrap.
     Skip,
 }
 
@@ -147,7 +150,7 @@ pub fn decide(w: &Wrapper, dir: &Path) -> Decision {
     }
     if !w.opaque {
         if let Some(cmd) = resolve(w, dir, 0) {
-            if is_watch_mode(&cmd) {
+            if is_explicit_watch(&cmd) {
                 return Decision::Skip;
             }
             return Decision::Resolved(cmd);
@@ -159,10 +162,12 @@ pub fn decide(w: &Wrapper, dir: &Path) -> Decision {
 /// The decision from the script name alone.
 pub fn decide_unresolved(w: &Wrapper) -> Decision {
     let name = w.name.as_str();
-    if !is_long_running(name) && SAFE_UNRESOLVED.contains(&name) {
+    if is_long_running(name) {
+        Decision::Skip
+    } else if SAFE_UNRESOLVED.contains(&name) {
         Decision::Sniff
     } else {
-        Decision::Skip
+        Decision::Unknown
     }
 }
 
@@ -365,7 +370,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
             dir.join("package.json"),
-            r#"{"scripts":{"test":"vitest run","lint":"eslint .","dev":"vite","x":"a && b","cov":"npm test","w":"jest --watch"}}"#,
+            r#"{"scripts":{"test":"vitest run","lint":"eslint .","dev":"vite","x":"a && b","cov":"npm test","w":"jest --watch","unit":"vitest","uw":"vitest --watch"}}"#,
         )
         .unwrap();
         let none = |_: &str| false;
@@ -375,10 +380,13 @@ mod tests {
         assert_eq!(d("npm run cov"), Decision::Resolved(cmd("vitest run")));
         assert_eq!(d("npm run dev"), Decision::Skip);
         assert_eq!(d("npm run w"), Decision::Skip);
-        assert_eq!(d("npm run x"), Decision::Skip);
+        // Bare vitest behind a script runs once without a TTY; --watch does not.
+        assert_eq!(d("npm run unit"), Decision::Resolved(cmd("vitest")));
+        assert_eq!(d("npm run uw"), Decision::Skip);
+        assert_eq!(d("npm run x"), Decision::Unknown);
         assert_eq!(d("npm run build"), Decision::Sniff);
         assert_eq!(d("make test"), Decision::Sniff);
-        assert_eq!(d("make"), Decision::Skip);
+        assert_eq!(d("make"), Decision::Unknown);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

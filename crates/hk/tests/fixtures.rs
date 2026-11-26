@@ -72,7 +72,12 @@ const CASES: &[(&str, &str, &str, i32)] = &[
     ("rspec", "fail", "bundle exec rspec", 1),
     ("phpunit", "fail", "vendor/bin/phpunit", 2),
     ("mix_test", "fail", "mix test", 2),
-    ("playwright", "fail", "npx playwright test", 1),
+    (
+        "playwright",
+        "fail",
+        "npx playwright test --reporter=list",
+        1,
+    ),
     // v1.0: listings
     ("find", "long", "find .", 0),
     ("ls_r", "long", "ls -R", 0),

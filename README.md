@@ -28,7 +28,7 @@ The Bash filters:
 | `js_test` | `vitest run`, `jest` | `✓ 1 passed` | test name, assertion, diff, first stack frame |
 | `go_test` | `go test` | `✓ 3 package(s) ok` | `--- FAIL` names plus `t.Errorf` lines |
 | `deno_bun_test` | `deno test`, `bun test` | `✓ 1 passed` | test name, error, diff, location |
-| `rspec`, `phpunit`, `mix_test`, `playwright` | `rspec`, `phpunit`/`pest`, `mix test`, `playwright test` | the count line | each failing test with its assertion and location |
+| `rspec`, `phpunit`, `mix_test`, `playwright` | `rspec`, `phpunit`/`pest`, `mix test`, `playwright test --reporter=list` (also `line`, `dot`, `github`) | the count line | each failing test with its assertion and location |
 | `jvm` | `mvn`, `mvnw`, `gradle`, `gradlew` | `✓ mvn: BUILD SUCCESS \| Tests run: …` | failing tests, compiler errors as `file:line: msg`, "What went wrong" |
 | `dotnet` | `dotnet build/test`, `msbuild` | the count line | `File.cs:10: error CS…` (de-duplicated), failing tests with message and frame |
 | `build` | `cargo build/check`, `tsc`, `go build/vet` | `✓ build ok` | one `file:line: msg` per diagnostic, de-duplicated, max 20 + `+N more` |

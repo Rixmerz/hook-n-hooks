@@ -19,12 +19,11 @@ impl Filter for Jvm {
 
     fn detect(&self, cmd: &Cmd) -> bool {
         match cmd.program.as_str() {
-            "mvn" | "mvnw" => !cmd
-                .args
-                .iter()
-                .any(|a| a.starts_with("help:") || a == "-DforceStdout" || a == "-q"),
+            "mvn" | "mvnw" => !cmd.args.iter().any(|a| {
+                a.starts_with("help:") || a == "-DforceStdout" || a == "-q" || maven_server(a)
+            }),
             "gradle" | "gradlew" => !cmd.args.iter().any(|a| {
-                a == "-t" || a == "--continuous" || a == "-q" || a == "--quiet" || a == "run"
+                a == "-t" || a == "--continuous" || a == "-q" || a == "--quiet" || gradle_server(a)
             }),
             _ => false,
         }
@@ -46,6 +45,26 @@ impl Filter for Jvm {
             gradle(output, exit, limits)
         }
     }
+}
+
+/// Goals that start a server or a program and never exit on their own:
+/// `spring-boot:run`, `quarkus:dev`, `jetty:run`, `exec:java`.
+fn maven_server(goal: &str) -> bool {
+    match goal.split_once(':') {
+        Some((plugin, g)) => {
+            plugin == "exec" || g == "run" || g.ends_with("-run") || g == "dev" || g == "start"
+        }
+        None => false,
+    }
+}
+
+/// `run`, `bootRun`, `quarkusDev`, `appRun`, `:app:bootRun`.
+fn gradle_server(task: &str) -> bool {
+    if task.starts_with('-') {
+        return false;
+    }
+    let t = task.rsplit(':').next().unwrap_or(task).to_ascii_lowercase();
+    t.ends_with("run") || t.ends_with("dev") || t == "start"
 }
 
 fn strip_level(l: &str) -> (&str, &str) {
@@ -206,4 +225,37 @@ fn gradle(output: &str, exit: i32, limits: &Limits) -> Option<String> {
         out.extend(what.into_iter().map(|w| format!("  {w}")));
     }
     Some(out.join("\n"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn detect(s: &str) -> bool {
+        let v: Vec<String> = s.split_whitespace().map(String::from).collect();
+        Jvm.detect(&Cmd::from_argv(&v).unwrap())
+    }
+
+    #[test]
+    fn never_wraps_servers() {
+        assert!(detect("mvn -B test"));
+        assert!(detect("mvn clean install"));
+        assert!(detect("./gradlew test"));
+        assert!(detect("gradle :app:build"));
+        for c in [
+            "mvn spring-boot:run",
+            "mvn quarkus:dev",
+            "mvn jetty:run",
+            "mvn exec:java",
+            "./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout",
+            "./gradlew bootRun",
+            "./gradlew :app:bootRun",
+            "gradle quarkusDev",
+            "gradle appRun",
+            "gradle run",
+            "gradle test --continuous",
+        ] {
+            assert!(!detect(c), "{c}");
+        }
+    }
 }

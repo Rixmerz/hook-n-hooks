@@ -199,12 +199,24 @@ impl Filter for Playwright {
         "playwright"
     }
 
+    /// Only with an explicit terminal reporter: the default `html` reporter
+    /// serves the report after a failure and waits for Ctrl+C, which would
+    /// hang until the Bash timeout with nothing but the log path to show.
     fn detect(&self, cmd: &Cmd) -> bool {
+        let a = &cmd.args;
+        let reporter = a.iter().enumerate().find_map(|(i, x)| {
+            x.strip_prefix("--reporter=")
+                .or_else(|| (x == "--reporter").then(|| a.get(i + 1).map(String::as_str))?)
+        });
         cmd.program == "playwright"
             && cmd.subcommand() == Some("test")
-            && !cmd.args.iter().any(|a| {
-                a == "--ui" || a == "--debug" || a.starts_with("--reporter=json") || a == "--list"
+            && reporter.is_some_and(|r| {
+                r.split(',')
+                    .all(|r| matches!(r, "list" | "line" | "dot" | "github"))
             })
+            && !a
+                .iter()
+                .any(|x| x == "--ui" || x == "--debug" || x == "--list")
     }
 
     fn sniff(&self, output: &str) -> bool {
