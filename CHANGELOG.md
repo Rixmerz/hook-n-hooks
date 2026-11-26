@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-26
+
+### Fixed
+
+- Launcher: before the binary was cached, `bin/hk` probed the `hk` on PATH,
+  which inside Claude Code is the launcher itself (the plugin's `bin/` is on
+  PATH), so it recursed forever and left `hk version` processes hanging. A
+  probe now runs with `HK_LAUNCHER_PROBE=1` and a launcher in that mode exits
+  at once instead of probing or downloading.
+
 ## [1.1.0] - 2026-11-26
 
 ### Added
@@ -135,6 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and verifies its SHA256.
 - CI on Linux, macOS and Windows, and a release workflow for six targets.
 
-[Unreleased]: https://github.com/Rixmerz/hook-n-hooks/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Rixmerz/hook-n-hooks/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/Rixmerz/hook-n-hooks/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/Rixmerz/hook-n-hooks/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Rixmerz/hook-n-hooks/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/Rixmerz/hook-n-hooks/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
 {
   "name": "hook-n-hooks",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Token-saving hooks for Claude Code: compact test, build, lint, git, docker, log and install output, format touched files, and a repo map at session start.",
   "author": {
     "name": "hook-n-hooks contributors",

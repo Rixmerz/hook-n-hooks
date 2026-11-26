@@ -14,7 +14,7 @@
 # Hooks fail open: if no binary can be obtained, `hk hook ...` exits 0 with no
 # output so Claude Code keeps working, and the reason goes to stderr.
 
-VERSION="1.1.0"
+VERSION="1.1.1"
 REPO="Rixmerz/hook-n-hooks"
 
 fail() {
@@ -53,8 +53,15 @@ if [ -x "$BIN" ]; then
   exec "$BIN" "$@"
 fi
 
+# A probe from another launcher (see below) must not probe PATH again or
+# download: Claude Code puts this plugin's bin/ on PATH, so the `hk` found
+# there can be this very launcher, and probing it would recurse forever.
+if [ -n "$HK_LAUNCHER_PROBE" ]; then
+  exit 1
+fi
+
 if command -v hk >/dev/null 2>&1; then
-  case "$(hk version 2>/dev/null)" in
+  case "$(HK_LAUNCHER_PROBE=1 hk version 2>/dev/null)" in
     "hk $VERSION") exec hk "$@" ;;
   esac
 fi
